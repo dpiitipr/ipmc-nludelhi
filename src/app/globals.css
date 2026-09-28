@@ -1,17 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #16100e;
-  --foreground: #faf8ed;
-  --pantone-brown: #231815;
-  --pantone-yellow: #f5efc6;
-  --pantone-red: #4d0e12;
-  --pantone-blue: #a5bcd6;
+  --pantone-dark: #231815;
+  --pantone-cream: #F5EFC6;
+  --pantone-red: #4D0E12;
+  --pantone-blue: #A5BCD6;
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--pantone-dark);
+  color: var(--pantone-cream);
+  font-family: Georgia, Cambria, "Times New Roman", Times, serif;
   min-height: 100vh;
+}
+
+::selection {
+  background-color: var(--pantone-red);
+  color: var(--pantone-cream);
 }
