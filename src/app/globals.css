@@ -1,20 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --pantone-dark: #231815;
-  --pantone-cream: #F5EFC6;
-  --pantone-red: #4D0E12;
-  --pantone-blue: #A5BCD6;
+  --bg-parchment: #FAF8F5;
+  --text-navy: #0B1B3D;
+  --accent-crimson: #8B0000;
+  --accent-gold: #C68A2C;
 }
 
 body {
-  background-color: var(--pantone-dark);
-  color: var(--pantone-cream);
+  background-color: var(--bg-parchment);
+  color: var(--text-navy);
   font-family: Georgia, Cambria, "Times New Roman", Times, serif;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 ::selection {
-  background-color: var(--pantone-red);
-  color: var(--pantone-cream);
+  background-color: var(--accent-crimson);
+  color: #FAF8F5;
 }

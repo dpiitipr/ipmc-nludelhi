@@ -28,11 +28,11 @@ export default function Home() {
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Background Slideshow Carousel (Rotates every 5 seconds)
+  // Background Photo Slideshow (Rotates every 4.5 seconds)
   useEffect(() => {
     const slideInterval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % BACKGROUND_SLIDES.length);
-    }, 5000);
+    }, 4500);
     return () => clearInterval(slideInterval);
   }, []);
 
@@ -80,20 +80,20 @@ export default function Home() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#231815] text-[#F5EFC6] font-serif flex flex-col justify-between p-8 sm:p-14 md:p-18 overflow-hidden selection:bg-[#4D0E12] selection:text-[#F5EFC6]">
+    <div className="relative min-h-screen bg-[#FFFDF7] text-[#0A192F] font-serif flex flex-col justify-between p-6 sm:p-10 md:p-16 border-t-[6px] border-[#8B0000] selection:bg-[#8B0000] selection:text-[#FFFDF7] overflow-x-hidden">
       
-      {/* Background Photo Carousel with Soft Java Vignette Overlay */}
+      {/* Full-Screen Background Photo Carousel with Soft Overlay */}
       <div className="absolute inset-0 pointer-events-none z-0">
         {BACKGROUND_SLIDES.map((slideSrc, index) => (
           <div
             key={slideSrc}
             className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-              index === currentSlide ? 'opacity-30 scale-105' : 'opacity-0 scale-100'
-            } transition-transform duration-[8000ms]`}
+              index === currentSlide ? 'opacity-35 scale-100' : 'opacity-0 scale-105'
+            } transition-transform duration-6000`}
           >
             <Image
               src={slideSrc}
-              alt="Vidhi Pragati Competition Highlight"
+              alt="Vidhi Pragati Background"
               fill
               priority={index === 0}
               className="object-cover object-center"
@@ -101,148 +101,133 @@ export default function Home() {
           </div>
         ))}
 
-        {/* Java Dark Vignette Overlay for Crisp Readability */}
+        {/* Parchment Overlay Gradient for Central Focus */}
         <div 
           className="absolute inset-0"
           style={{
-            background: 'radial-gradient(circle at 50% 35%, rgba(35,24,21,0.70) 0%, rgba(35,24,21,0.95) 85%)'
+            background: 'radial-gradient(circle at 50% 50%, rgba(255,253,247,0.75) 0%, rgba(255,253,247,0.94) 80%)'
           }}
         />
       </div>
 
-      {/* Top Header & Logo */}
-      <header className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-        <div className="flex items-center gap-5">
-          {/* Logo Badge in Cream Palette Container */}
-          <div className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-2xl bg-[#F5EFC6] p-2.5 shadow-xl border border-[#F5EFC6]/30 flex items-center justify-center">
+      {/* Top Header */}
+      <header className="relative z-10 flex flex-col sm:flex-row justify-between items-center gap-4 pb-6 border-b-2 border-[#0A192F]/15">
+        <div className="flex items-center gap-4">
+          <div className="relative w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-2xl bg-white p-2 shadow-md border-2 border-[#D4AF37]/40 flex items-center justify-center">
             <Image
               src="/logo-trans.png"
               alt="Vidhi Pragati Logo"
-              width={72}
-              height={72}
+              width={64}
+              height={64}
               className="object-contain w-full h-full"
               priority
             />
           </div>
-
-          <div>
-            <span className="text-[11px] font-mono tracking-[0.25em] uppercase text-[#A5BCD6] block font-semibold">
+          <div className="text-left">
+            <span className="text-[10px] sm:text-xs font-mono tracking-[0.25em] uppercase text-[#8B0000] font-bold block">
               National Law University Delhi
             </span>
-            <span className="text-xs font-mono tracking-wider text-[#F5EFC6]/70 uppercase block mt-0.5">
+            <span className="text-xs sm:text-sm font-mono tracking-wider text-[#0A192F]/80 uppercase block font-semibold mt-0.5">
               CIIPC &amp; DPIIT-IPR Chair
             </span>
           </div>
         </div>
       </header>
 
-      {/* Main Hero Section & Time Runner */}
-      <main className="relative z-10 my-auto py-10 max-w-5xl">
-        <p className="text-xs font-mono tracking-[0.3em] uppercase text-[#A5BCD6] mb-3 font-semibold">
-          3rd National IP Moot Court Competition
-        </p>
-
-        <h1 className="text-5xl sm:text-7xl md:text-9xl font-serif text-[#F5EFC6] leading-[0.9] tracking-tight font-normal">
-          Vidhi Pragati <span className="italic font-light text-[#A5BCD6]">2027</span>
-        </h1>
-
-        <p className="text-xl sm:text-2xl md:text-3xl font-serif italic text-[#A5BCD6] mt-4 font-light">
-          Competition Launch
-        </p>
-
-        {/* Time Runner Display */}
-        <div className="mt-14 flex flex-wrap items-baseline gap-6 sm:gap-12 font-mono">
-          <div className="flex flex-col">
-            <span className="text-5xl sm:text-7xl md:text-8xl font-bold text-[#F5EFC6] tracking-tighter">
-              {timeLeft.days}
-            </span>
-            <span className="text-[10px] tracking-[0.3em] text-[#A5BCD6] uppercase mt-2 font-semibold">
-              Days
-            </span>
-          </div>
-
-          <span className="text-3xl sm:text-5xl text-[#F5EFC6]/30 font-light select-none">:</span>
-
-          <div className="flex flex-col">
-            <span className="text-5xl sm:text-7xl md:text-8xl font-bold text-[#F5EFC6] tracking-tighter">
-              {timeLeft.hours}
-            </span>
-            <span className="text-[10px] tracking-[0.3em] text-[#A5BCD6] uppercase mt-2 font-semibold">
-              Hours
-            </span>
-          </div>
-
-          <span className="text-3xl sm:text-5xl text-[#F5EFC6]/30 font-light select-none">:</span>
-
-          <div className="flex flex-col">
-            <span className="text-5xl sm:text-7xl md:text-8xl font-bold text-[#F5EFC6] tracking-tighter">
-              {timeLeft.minutes}
-            </span>
-            <span className="text-[10px] tracking-[0.3em] text-[#A5BCD6] uppercase mt-2 font-semibold">
-              Minutes
-            </span>
-          </div>
-
-          <span className="text-3xl sm:text-5xl text-[#F5EFC6]/30 font-light select-none">:</span>
-
-          <div className="flex flex-col">
-            <span className="text-5xl sm:text-7xl md:text-8xl font-bold text-[#F5EFC6] tracking-tighter">
-              {timeLeft.seconds}
-            </span>
-            <span className="text-[10px] tracking-[0.3em] text-[#A5BCD6] uppercase mt-2 font-semibold">
-              Seconds
-            </span>
-          </div>
+      {/* Main Centered Content */}
+      <main className="relative z-10 my-auto py-8 max-w-5xl mx-auto w-full text-center flex flex-col items-center">
+        
+        {/* 1. 3rd National IP Moot Court Competition */}
+        <div className="inline-block bg-[#8B0000]/10 border border-[#8B0000]/30 px-4 py-1.5 rounded-full mb-5">
+          <span className="text-xs sm:text-sm font-mono tracking-[0.25em] uppercase text-[#8B0000] font-bold">
+            3rd National IP Moot Court Competition
+          </span>
         </div>
 
-        {/* Minimal Dispatch Form */}
-        <div className="mt-14 max-w-md">
-          <p className="text-xs font-mono text-[#A5BCD6] tracking-widest uppercase mb-4 font-semibold">
-            Official Launch: October 01, 2026 - 17:00 IST
-          </p>
+        {/* 2. Vidhi Pragati 2027 (Fixed sizing & line wrapping) */}
+        <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-serif text-[#0A192F] leading-none tracking-tight font-normal">
+          Vidhi Pragati <span className="italic font-normal text-[#8B0000] whitespace-nowrap">2027</span>
+        </h1>
 
+        {/* 3. Launch of the Competition */}
+        <p className="text-lg sm:text-2xl md:text-3xl font-serif italic text-[#0A192F]/80 mt-4 font-light">
+          Launch of the Competition
+        </p>
+
+        {/* Unified Numerical Countdown Box Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-2xl w-full my-8 sm:my-10">
+          {[
+            { label: 'DAYS', value: timeLeft.days },
+            { label: 'HOURS', value: timeLeft.hours },
+            { label: 'MINUTES', value: timeLeft.minutes },
+            { label: 'SECONDS', value: timeLeft.seconds },
+          ].map((item, i) => (
+            <div 
+              key={i} 
+              className="bg-white/90 backdrop-blur-sm border-2 border-[#0A192F]/20 p-4 sm:p-5 rounded-2xl flex flex-col items-center justify-center shadow-md hover:border-[#8B0000] transition-colors"
+            >
+              <span className="text-3xl sm:text-5xl lg:text-6xl font-mono font-bold text-[#0A192F] tracking-tighter">
+                {item.value}
+              </span>
+              <span className="text-[10px] font-mono tracking-[0.25em] text-[#0A192F]/60 uppercase mt-2 font-bold">
+                {item.label}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* 4. OFFICIAL LAUNCH AT OCTOBER 01, 2026 — 17:00 IST */}
+        <p className="text-xs sm:text-sm font-mono text-[#8B0000] tracking-[0.2em] uppercase font-bold mb-6">
+          OFFICIAL LAUNCH AT OCTOBER 01, 2026 — 17:00 IST
+        </p>
+
+        {/* 5. Email Address Subscription Input */}
+        <div className="w-full max-w-md">
           {!subscribed ? (
-            <form onSubmit={handleSubscribe} className="flex items-center border-b-2 border-[#F5EFC6]/30 pb-2 transition-colors focus-within:border-[#F5EFC6]">
+            <form onSubmit={handleSubscribe} className="flex items-center border-b-2 border-[#8B0000] pb-2 transition-colors focus-within:border-[#0A192F]">
               <input
                 type="email"
                 placeholder="Email Address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="bg-transparent text-xs font-mono text-[#F5EFC6] placeholder-[#A5BCD6]/60 focus:outline-none flex-1 pr-4"
+                className="bg-transparent text-xs sm:text-sm font-mono text-[#0A192F] placeholder-[#0A192F]/50 focus:outline-none flex-1 pr-3 text-center"
               />
               <button
                 type="submit"
                 disabled={loading}
-                className="text-[11px] font-mono text-[#F5EFC6] hover:text-[#A5BCD6] uppercase tracking-[0.2em] font-bold transition-colors cursor-pointer shrink-0"
+                className="bg-[#8B0000] hover:bg-[#0A192F] text-[#FFFDF7] text-xs font-mono font-bold uppercase tracking-widest px-5 py-2.5 rounded-xl transition-colors cursor-pointer shrink-0 shadow-md"
               >
                 {loading ? '...' : 'Notify Me →'}
               </button>
             </form>
           ) : (
-            <p className="text-xs font-mono text-[#F5EFC6] tracking-widest uppercase font-semibold">
-              ✓ Email Registered for Notification
-            </p>
+            <div className="bg-[#8B0000]/10 border border-[#8B0000] p-3.5 rounded-xl text-center">
+              <p className="text-xs font-mono text-[#8B0000] tracking-widest uppercase font-bold">
+                ✓ Registered for Official Launch Dispatch
+              </p>
+            </div>
           )}
         </div>
+
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center text-[10px] font-mono text-[#A5BCD6] gap-4 pt-6 border-t border-[#F5EFC6]/15">
-        <p className="font-medium">Sector 14, Dwarka, New Delhi — 110078</p>
+      <footer className="relative z-10 flex flex-col sm:flex-row justify-between items-center text-xs font-mono text-[#0A192F]/80 gap-3 pt-6 border-t-2 border-[#0A192F]/15">
+        <p className="font-semibold">Sector 14, Dwarka, New Delhi — 110078</p>
         
-        {/* Slideshow Progress Dots */}
+        {/* Carousel Indicators */}
         <div className="flex items-center gap-1.5">
           {BACKGROUND_SLIDES.map((_, i) => (
             <span
               key={i}
-              className={`h-1.5 rounded-full transition-all duration-500 ${
-                i === currentSlide ? 'w-6 bg-[#F5EFC6]' : 'w-1.5 bg-[#F5EFC6]/20'
+              className={`h-2 rounded-full transition-all duration-500 ${
+                i === currentSlide ? 'w-6 bg-[#8B0000]' : 'w-2 bg-[#0A192F]/20'
               }`}
             />
           ))}
         </div>
 
-        <a href="mailto:dpiit.ipr@nludelhi.ac.in" className="hover:text-[#F5EFC6] transition-colors font-medium">
+        <a href="mailto:dpiit.ipr@nludelhi.ac.in" className="hover:text-[#8B0000] transition-colors font-bold text-[#8B0000]">
           dpiit.ipr@nludelhi.ac.in
         </a>
       </footer>
