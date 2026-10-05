@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { INVITED_INSTITUTIONS } from '@/lib/institutions';
 
 /*
   Palette (swatches only):
@@ -8,81 +9,6 @@ import React, { useState } from 'react';
   Potting Soil #4A2E27 · Java Brown #231815
 */
 
-export const INVITED_INSTITUTIONS = [
-  "National Law School of India University",
-  "National Law University, Delhi",
-  "NALSAR University of Law, Hyderabad",
-  "The West Bengal National University of Juridical Sciences",
-  "Gujarat National Law University, Gandhinagar",
-  "Indian Institute of Technology Kharagpur",
-  "Symbiosis Law School, Pune",
-  "Jamia Millia Islamia, Faculty of Law",
-  "Aligarh Muslim University",
-  "Siksha 'O' Anusandhan",
-  "Shanmugha Arts Science Technology & Research Academy",
-  "Babasaheb Bhimrao Ambedkar University",
-  "Cochin University of Science and Technology",
-  "Kalinga Institute of Industrial Technology",
-  "National Law University, Odisha",
-  "Dr. B. R. Ambedkar College of Law",
-  "Chanakya National Law University, Patna",
-  "UPES, School of Law",
-  "Saveetha Institute of Medical and Technical Sciences",
-  "Alliance University",
-  "Dr. Ram Manohar Lohiya National Law University",
-  "Guru Gobind Singh Indraprastha University",
-  "Central University of South Bihar",
-  "Christ University",
-  "S.R.M. Institute of Science and Technology / SRM School of Law",
-  "Lovely Professional University",
-  "National Law Institute University, Bhopal",
-  "Maharashtra National Law University, Nagpur",
-  "University of Lucknow",
-  "National University of Study & Research in Law, Ranchi",
-  "ICFAI Foundation for Higher Education / ICFAI Law School",
-  "Manipal University Jaipur",
-  "Nirma University, Institute of Law",
-  "Himachal Pradesh National Law University, Shimla",
-  "National Law University and Judicial Academy, Assam",
-  "Galgotias University",
-  "Army Institute of Law",
-  "Gandhi Institute of Technology and Management (GITAM)",
-  "Amity University Haryana, Gurgaon",
-  "Central University of Punjab",
-  "National Law University, Jodhpur",
-  "Hidayatullah National Law University, Raipur",
-  "GNLU Silvassa Campus",
-  "Rajiv Gandhi National University of Law, Punjab",
-  "National University of Advanced Legal Studies, Kochi",
-  "Tamil Nadu National Law University",
-  "Maharashtra National Law University, Mumbai",
-  "Maharashtra National Law University, Chhatrapati Sambhajinagar",
-  "Dharmashastra National Law University, Jabalpur",
-  "Dr. B. R. Ambedkar National Law University, Haryana",
-  "National Law University Tripura",
-  "Dr. Rajendra Prasad National University of Law, Prayagraj",
-  "India International University of Legal Education and Research, Goa",
-  "National Law University Meghalaya",
-  "University of Delhi",
-  "Banaras Hindu University",
-  "Birla Institute of Technology and Science, Pilani",
-  "Manipal Academy of Higher Education",
-  "O. P. Jindal Global University / Jindal Global Law School",
-  "Shiv Nadar University",
-  "Government Law College, Mumbai",
-  "ILS Law College, Pune",
-  "Uttaranchal University, Law College Dehradun",
-  "VIT School of Law",
-  "Bharati Vidyapeeth (Deemed to be University) New Law College",
-  "Osmania University",
-  "Andhra University",
-  "Tezpur University",
-  "Saurashtra University",
-  "Punjabi University",
-  "Kavayitri Bahinabai Chaudhari North Maharashtra University, Jalgaon",
-  "Panjab University",
-  "Maharaja Sayajirao University of Baroda"
-];
 
 /* ---------- shared pieces (defined at module level so inputs keep focus) ---------- */
 
