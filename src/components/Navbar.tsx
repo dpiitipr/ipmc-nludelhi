@@ -46,7 +46,7 @@ export default function Navbar() {
           <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-[#F5EFC6] p-1.5 ring-1 ring-[#A5BCD6]/50 transition group-hover:ring-2 group-hover:ring-[#A5BCD6] sm:h-14 sm:w-14">
             <Image
               alt="Vidhi Pragati logo"
-              src="/logo-trans.png"
+              src="/vidhi_logo.PNG"
               width={56}
               height={56}
               className="h-full w-full object-contain"

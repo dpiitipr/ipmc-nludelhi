@@ -91,13 +91,6 @@ export default function PastEditionsIndexPage() {
       {/* ---------- HERO ---------- */}
       <header className="relative isolate overflow-hidden bg-[#231815] text-[#F5EFC6]">
         <div className="absolute inset-0 -z-10 bg-linear-to-br from-[#231815] via-[#231815] to-[#4D0E12]" />
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-6 bottom-[-0.2em] -z-10 select-none font-serif text-[clamp(10rem,30vw,24rem)] font-bold leading-none text-transparent"
-          style={{ WebkitTextStroke: '1.5px rgba(165,188,214,0.3)' }}
-        >
-          {editions.length}
-        </span>
 
         <div className="mx-auto max-w-5xl px-6 pb-20 pt-32 sm:pb-24 sm:pt-40">
           <h1 className="font-serif text-5xl font-bold leading-[1.05] tracking-tight sm:text-7xl">
@@ -119,7 +112,6 @@ export default function PastEditionsIndexPage() {
               ed.coverImage?.url ||
               ed.organisingCommitteePhotos?.[0]?.url ||
               '/SAN_1069.JPG';
-            const ordinal = (ed.edition || '').split(' ')[0];
             const flip = index % 2 === 1;
 
             return (
@@ -142,12 +134,6 @@ export default function PastEditionsIndexPage() {
 
                   {/* Text */}
                   <div className="space-y-5">
-                    <p className="flex items-baseline gap-3">
-                      <span className="font-serif text-5xl font-bold leading-none text-[#4D0E12] sm:text-6xl">
-                        {ordinal || 'Edition'}
-                      </span>
-                      <span className="text-sm text-[#231815]/60">{ed.year}</span>
-                    </p>
 
                     <h2 className="font-serif text-2xl font-bold leading-tight sm:text-3xl">
                       {/* stretched link: the whole article is clickable */}
@@ -159,6 +145,10 @@ export default function PastEditionsIndexPage() {
                       </Link>
                     </h2>
 
+                    {ed.year && (
+                      <p className="text-base font-semibold text-[#4D0E12]">{ed.year}</p>
+                    )}
+
                     {ed.theme && (
                       <p className="border-l-2 border-[#4D0E12] pl-4 font-serif italic text-[#231815]/80">
                         {ed.theme}
@@ -166,7 +156,7 @@ export default function PastEditionsIndexPage() {
                     )}
 
                     {ed.description && (
-                      <p className="line-clamp-3 max-w-[56ch] text-base leading-relaxed text-[#231815]/75">
+                      <p className="line-clamp-3 max-w-[56ch] text-justify text-base leading-relaxed text-[#231815]/75 hyphens-auto">
                         {ed.description}
                       </p>
                     )}

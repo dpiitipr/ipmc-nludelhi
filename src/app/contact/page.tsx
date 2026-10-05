@@ -52,7 +52,7 @@ export default function ContactPage() {
     const raw =
       content?.studentConvenors ||
       content?.convenors ||
-      ['Rashi', 'Kanav Aggarwal'];
+      ['Apurva Tayal', 'Chaitrali Naik', 'Shivank Yadav'];
 
     if (Array.isArray(raw)) {
       if (raw.length === 1) return raw[0];
@@ -64,14 +64,14 @@ export default function ContactPage() {
       return raw.replace(/,\s*/g, ', ');
     }
 
-    return 'Rashi and Kanav Aggarwal';
+    return 'Apurva Tayal, Chaitrali Naik, and Shivank Yadav';
   }, [content]);
 
   const formattedCoordinator = useMemo(() => {
     const raw =
       content?.researchCoordinator ||
       content?.coordinator ||
-      'Nishtha Sharma – Research and Programme Coordinator';
+      'Nishtha Sharma';
 
     if (Array.isArray(raw)) {
       return raw.join(', ');
@@ -343,7 +343,7 @@ export default function ContactPage() {
           <div className="flex items-center gap-4 border-b border-[#A5BCD6]/25 pb-6">
             <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-[#F5EFC6]">
               <Image
-                src="/IPR-Moot-Logo_page-0001.jpg"
+                src="/vidhi_logo.PNG"
                 alt="Vidhi Pragati IPMC logo"
                 fill
                 sizes="64px"
@@ -357,13 +357,13 @@ export default function ContactPage() {
 
           <dl className="space-y-6">
             <div>
-              <dt className="text-sm text-[#A5BCD6]">Student convenors</dt>
-              <dd className="mt-1 text-base font-semibold leading-snug">{formattedConvenors}</dd>
+              <dt className="text-sm text-[#A5BCD6]">Moot Director</dt>
+              <dd className="mt-1 text-base font-semibold leading-snug">{formattedCoordinator}</dd>
             </div>
 
             <div>
-              <dt className="text-sm text-[#A5BCD6]">Research and programme coordinator</dt>
-              <dd className="mt-1 text-base font-semibold leading-snug">{formattedCoordinator}</dd>
+              <dt className="text-sm text-[#A5BCD6]">Student Coordinators</dt>
+              <dd className="mt-1 text-base font-semibold leading-snug">{formattedConvenors}</dd>
             </div>
 
             <div className="border-t border-[#A5BCD6]/25 pt-6">

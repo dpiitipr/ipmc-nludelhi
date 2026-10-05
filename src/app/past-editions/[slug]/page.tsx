@@ -146,8 +146,6 @@ export default function SingleEditionPage() {
   const finalEmbed = getYouTubeEmbedUrl(edition.finalVideoUrl);
   const valedictoryEmbed = getYouTubeEmbedUrl(edition.valedictoryVideoUrl);
 
-  // "1st Edition" -> "1st"
-  const ordinal = (edition.edition || '').split(' ')[0];
   const heroPhoto = ocPhotos[0]?.url;
 
   return (
@@ -166,14 +164,6 @@ export default function SingleEditionPage() {
         )}
         <div className="absolute inset-0 -z-10 bg-linear-to-t from-[#231815] via-[#4D0E12]/60 to-[#231815]/50" />
 
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-4 bottom-[-0.18em] -z-10 select-none font-serif text-[clamp(10rem,32vw,26rem)] font-bold leading-none text-transparent"
-          style={{ WebkitTextStroke: '1.5px rgba(165,188,214,0.3)' }}
-        >
-          {ordinal}
-        </span>
-
         <div className="mx-auto max-w-5xl px-6 pb-20 pt-32 sm:pb-28 sm:pt-40">
           <Link
             href="/past-editions"
@@ -186,6 +176,10 @@ export default function SingleEditionPage() {
             {edition.title}
           </h1>
 
+          {edition.year && (
+            <p className="mt-4 text-base font-semibold text-[#A5BCD6]">{edition.year}</p>
+          )}
+
           {edition.theme && (
             <p className="mt-6 max-w-2xl border-l-2 border-[#A5BCD6] pl-4 font-serif text-lg italic leading-snug text-[#F5EFC6]/90 sm:text-xl">
               {edition.theme}
@@ -194,27 +188,6 @@ export default function SingleEditionPage() {
         </div>
       </header>
 
-      {/* ---------- FACT STRIP ---------- */}
-      <div className="relative z-10 mx-auto -mt-10 max-w-5xl px-6">
-        <dl className="grid grid-cols-2 divide-x divide-[#F5EFC6]/15 rounded-xl border border-[#A5BCD6]/40 bg-[#4A2E27] text-[#F5EFC6] shadow-[0_14px_40px_-14px_rgba(35,24,21,0.7)] sm:grid-cols-3">
-          <div className="px-5 py-4 sm:px-8 sm:py-5">
-            <dt className="text-xs text-[#A5BCD6]">Edition</dt>
-            <dd className="mt-0.5 font-serif text-lg font-bold sm:text-xl">{edition.edition}</dd>
-          </div>
-          <div className="px-5 py-4 sm:px-8 sm:py-5">
-            <dt className="text-xs text-[#A5BCD6]">Year</dt>
-            <dd className="mt-0.5 font-serif text-lg font-bold sm:text-xl">{edition.year}</dd>
-          </div>
-          <div className="col-span-2 border-t border-[#F5EFC6]/15 px-5 py-4 sm:col-span-1 sm:border-t-0 sm:px-8 sm:py-5">
-            <dt className="text-xs text-[#A5BCD6]">Resources</dt>
-            <dd className="mt-0.5 font-serif text-lg font-bold sm:text-xl">
-              {materialsList.length} document{materialsList.length === 1 ? '' : 's'}
-              {finalEmbed || valedictoryEmbed ? ' + video' : ''}
-            </dd>
-          </div>
-        </dl>
-      </div>
-
       {/* ---------- BODY ---------- */}
       <main className="mx-auto max-w-5xl space-y-20 px-6 pb-28 pt-16">
         {edition.description && (
@@ -222,7 +195,7 @@ export default function SingleEditionPage() {
             <h2 id="overview-h" className="font-serif text-2xl font-bold text-[#4D0E12]">
               Overview
             </h2>
-            <p className="max-w-[62ch] font-serif text-lg leading-[1.8] text-[#231815]/90 sm:text-xl">
+            <p className="max-w-[62ch] text-justify font-serif text-lg leading-[1.8] text-[#231815]/90 hyphens-auto sm:text-xl">
               {edition.description}
             </p>
           </section>

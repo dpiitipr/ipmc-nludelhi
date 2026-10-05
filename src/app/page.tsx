@@ -125,18 +125,19 @@ export default function HomePage() {
     });
   }, [content]);
 
+  // Order: DPIIT, CIPAM, NLU Delhi, DPIIT IPR Chair, CIIPC
   const organizers = [
     {
-      name: 'The DPIIT Chair on IPR',
-      title: 'DPIIT Chair on Intellectual Property Rights',
-      logo: '/ipam-logo.png',
-      link: 'https://nludelhi.ac.in/dpiit-ipr-chair/',
-    },
-    {
-      name: 'DPIIT',
-      title: 'Department for Promotion of Industry and Internal Trade',
+      name: 'Department for Promotion of Industry and Internal Trade',
+      title: 'DTI',
       logo: '/dtiip-logo.png',
       link: 'https://www.dpiit.gov.in/',
+    },
+    {
+      name: 'Cell for IPR Promotion and Management',
+      title: 'CIPAM',
+      logo: '/ipam-logo.png',
+      link: 'https://cipam.gov.in/',
     },
     {
       name: 'National Law University Delhi',
@@ -145,8 +146,14 @@ export default function HomePage() {
       link: 'https://nludelhi.ac.in/',
     },
     {
-      name: 'CIIPC',
-      title: 'Centre for Innovation, Intellectual Property and Competition',
+      name: 'DPIIT Chair on Intellectual Property Rights, NLU Delhi',
+      title: 'DPIIT IPR Chair',
+      logo: '/NLU-Delhi-DPIIT-IPR-Chair.png',
+      link: 'https://nludelhi.ac.in/dpiit-ipr-chair/',
+    },
+    {
+      name: 'Centre for Innovation, Intellectual Property and Competition',
+      title: 'CIIPC',
       logo: '/ciipc-logo.png',
       link: 'https://nludelhi.ac.in/research/centre-for-innovation-intellectual-property-and-competition-ciipc/',
     },
@@ -271,22 +278,14 @@ export default function HomePage() {
       </section>
 
       {/* ---------- 2. ABOUT ---------- */}
-      <section className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-24 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:gap-16">
+      <section className="mx-auto w-full max-w-3xl px-6 py-24">
         <h2 className="font-serif text-4xl font-bold leading-tight tracking-tight text-[#4D0E12] sm:text-5xl">
           Welcome to Vidhi Pragati 2027
         </h2>
-
-        <div className="border-t border-[#231815]/20 pt-6 md:border-l md:border-t-0 md:pl-12 md:pt-0">
-          {aboutText ? (
-            <p className="max-w-[62ch] whitespace-pre-line font-serif text-lg leading-[1.85] text-[#231815]/90 sm:text-xl">
-              {aboutText}
-            </p>
-          ) : (
-            <p className="max-w-[62ch] font-serif text-lg leading-[1.85] text-[#231815]/90 sm:text-xl">
-              The Vidhi Pragati National IP Moot Court Competition (IPMC) is organized by National Law University Delhi in collaboration with CIPAM, DPIIT, and CIIPC. Designed as a landmark academic forum, Vidhi Pragati brings together law students from top universities across India to engage in thought-provoking advocacy, complex Intellectual Property disputes, and emerging jurisprudence.
-            </p>
-          )}
-        </div>
+        <p className="mt-8 whitespace-pre-line text-justify font-serif text-lg leading-[1.85] text-[#231815]/90 hyphens-auto sm:text-xl">
+          {aboutText ||
+            'The Vidhi Pragati National IP Moot Court Competition (IPMC) is organized by National Law University Delhi in collaboration with CIPAM, DPIIT, and CIIPC. Designed as a landmark academic forum, Vidhi Pragati brings together law students from top universities across India to engage in thought-provoking advocacy, complex Intellectual Property disputes, and emerging jurisprudence.'}
+        </p>
       </section>
 
       {/* ---------- 3. ORGANIZERS ---------- */}
@@ -296,9 +295,9 @@ export default function HomePage() {
             Meet the organizers
           </h2>
 
-          <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <ul className="flex flex-wrap justify-center gap-5">
             {organizers.map((org) => (
-              <li key={org.name}>
+              <li key={org.name} className="w-full sm:w-[calc(50%-0.625rem)] lg:w-[calc(20%-1rem)]">
                 <a
                   href={org.link}
                   target="_blank"
@@ -311,7 +310,7 @@ export default function HomePage() {
                       alt={org.name}
                       width={180}
                       height={90}
-                      className="max-h-20 w-auto object-contain"
+                      className="max-h-20 w-auto max-w-full object-contain"
                     />
                   </div>
 
@@ -319,9 +318,6 @@ export default function HomePage() {
                     <h3 className="text-base font-bold text-[#231815] transition-colors group-hover:text-[#4D0E12]">
                       {org.name}
                     </h3>
-                    <p className="line-clamp-2 text-xs leading-tight text-[#231815]/70">
-                      {org.title}
-                    </p>
                   </div>
                 </a>
               </li>
