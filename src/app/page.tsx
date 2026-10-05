@@ -1,237 +1,462 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
-import { supabase } from '@/lib/supabase';
+import { hygraphClient } from '@/lib/hygraph';
+import { GET_VIDHI_CONTENT } from '@/lib/queries';
 
-// Competition Photo Slideshow Assets
-const BACKGROUND_SLIDES = [
-  '/2A3A0323.JPG',
-  '/2A3A9002.JPG',
-  '/2A3A9270.JPG',
-  '/2A3A9580.JPG',
-  '/SAN_1069.JPG',
-];
+/*
+  Palette (from the supplied swatches only):
+  Transparent Yellow  #F5EFC6  light surface, text on dark
+  Sceptre Red         #4D0E12  accent, active states
+  Cerulean Blue       #A5BCD6  cool highlight, section contrast
+  Potting Soil        #4A2E27  secondary dark
+  Java Brown          #231815  base dark, text on light
+  Tints use opacity modifiers of these same hex values.
+*/
 
-// Target Launch Epoch: October 1st, 2026 at 17:00 IST (For Vidhi Pragati 2027 - 3rd Edition)
-const TARGET_LAUNCH_DATE = new Date('2026-10-01T17:00:00+05:30').getTime();
+export default function HomePage() {
+  const [content, setContent] = useState<any>(null);
+  const [now, setNow] = useState<Date | null>(null);
+  const [heroBgIndex, setHeroBgIndex] = useState<number>(0);
 
-export default function Home() {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [timeLeft, setTimeLeft] = useState({
-    days: '00',
-    hours: '00',
-    minutes: '00',
-    seconds: '00',
-  });
-  const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
-  const [loading, setLoading] = useState(false);
+  // Local campus photos gallery
+  const campusImages = [
+    '/2A3A0323.JPG',
+    '/2A3A9002.JPG',
+    '/2A3A9270.JPG',
+    '/2A3A9580.JPG',
+    '/SAN_1069.JPG',
+  ];
 
-  // Background Photo Slideshow (Rotates every 4.5 seconds)
+  // Timer
   useEffect(() => {
-    const slideInterval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % BACKGROUND_SLIDES.length);
+    setNow(new Date());
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Background rotator
+  useEffect(() => {
+    const bgTimer = setInterval(() => {
+      setHeroBgIndex((prev) => (prev + 1) % campusImages.length);
     }, 4500);
-    return () => clearInterval(slideInterval);
-  }, []);
+    return () => clearInterval(bgTimer);
+  }, [campusImages.length]);
 
-  // Countdown Timer
+  // Hygraph fetch
   useEffect(() => {
-    const updateTimer = () => {
-      const now = new Date().getTime();
-      const difference = TARGET_LAUNCH_DATE - now;
-
-      if (difference <= 0) {
-        setTimeLeft({ days: '00', hours: '00', minutes: '00', seconds: '00' });
-        return;
+    async function fetchContent() {
+      try {
+        const data: any = await hygraphClient.request(GET_VIDHI_CONTENT);
+        if (data?.vidhiMarketings?.[0]) {
+          setContent(data.vidhiMarketings[0]);
+        }
+      } catch (err) {
+        console.error('Hygraph Fetch Error:', err);
       }
-
-      setTimeLeft({
-        days: Math.floor(difference / (1000 * 60 * 60 * 24)).toString().padStart(2, '0'),
-        hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)).toString().padStart(2, '0'),
-        minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0'),
-        seconds: Math.floor((difference % (1000 * 60)) / 1000).toString().padStart(2, '0'),
-      });
-    };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
+    }
+    fetchContent();
   }, []);
 
-  const handleSubscribe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !email.includes('@')) return;
+  // Timeline milestones
+  const processedTimeline = useMemo(() => {
+    if (!content?.timeline || !Array.isArray(content.timeline) || !now) return [];
 
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('launch_subscribers')
-        .insert([{ email, subscribed_at: new Date().toISOString() }]);
+    const sorted = [...content.timeline].sort((a: any, b: any) => {
+      const aTime = a.startDate ? new Date(a.startDate).getTime() : 0;
+      const bTime = b.startDate ? new Date(b.startDate).getTime() : 0;
+      return aTime - bTime;
+    });
 
-      if (error && error.code !== '23505') throw error;
-      setSubscribed(true);
-    } catch {
-      setSubscribed(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const nowMs = now.getTime();
+    const activeIdx = sorted.findIndex((item: any) => {
+      const targetTime = new Date(item.endDate || item.startDate).getTime();
+      return targetTime > nowMs;
+    });
+
+    return sorted.map((item: any, idx: number) => {
+      const targetMs = new Date(item.endDate || item.startDate).getTime();
+      const isPassed = nowMs > targetMs;
+      const isActive = activeIdx !== -1 ? idx === activeIdx : idx === sorted.length - 1;
+      return { ...item, isActive, isPassed };
+    });
+  }, [content, now]);
+
+  const activeMilestone = processedTimeline.find((item) => item.isActive);
+
+  // Live countdown
+  const countdown = useMemo(() => {
+    if (!activeMilestone || !now) return { days: '00', hours: '00', mins: '00', secs: '00' };
+
+    const targetTime = new Date(activeMilestone.endDate || activeMilestone.startDate).getTime();
+    const diff = targetTime - now.getTime();
+
+    if (diff <= 0) return { days: '00', hours: '00', mins: '00', secs: '00' };
+
+    return {
+      days: String(Math.floor(diff / (1000 * 60 * 60 * 24))).padStart(2, '0'),
+      hours: String(Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0'),
+      mins: String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0'),
+      secs: String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, '0'),
+    };
+  }, [activeMilestone, now]);
+
+  // Normalize Hygraph resources
+  const resourcesList = useMemo(() => {
+    const rawList = content?.resources || content?.resource || [];
+    if (!Array.isArray(rawList)) return [];
+
+    return rawList.map((res: any, i: number) => {
+      const assetObj = res.asset || res.file || (res.url ? res : null);
+      const title =
+        res.title ||
+        res.name ||
+        assetObj?.title ||
+        assetObj?.fileName ||
+        'Official Resource Document';
+      const fileUrl = assetObj?.url || res.url || '#';
+      const mimeType = assetObj?.mimeType || res.mimeType || '';
+      const fileType = mimeType.includes('/')
+        ? mimeType.split('/')[1].toUpperCase()
+        : 'PDF';
+
+      return { id: res.id || `resource-${i}`, title, fileUrl, fileType };
+    });
+  }, [content]);
+
+  const organizers = [
+    {
+      name: 'The DPIIT Chair on IPR',
+      title: 'DPIIT Chair on Intellectual Property Rights',
+      logo: '/ipam-logo.png',
+      link: 'https://nludelhi.ac.in/dpiit-ipr-chair/',
+    },
+    {
+      name: 'DPIIT',
+      title: 'Department for Promotion of Industry and Internal Trade',
+      logo: '/dtiip-logo.png',
+      link: 'https://www.dpiit.gov.in/',
+    },
+    {
+      name: 'National Law University Delhi',
+      title: 'NLUD',
+      logo: '/nlud-logo.png',
+      link: 'https://nludelhi.ac.in/',
+    },
+    {
+      name: 'CIIPC',
+      title: 'Centre for Innovation, Intellectual Property and Competition',
+      logo: '/ciipc-logo.png',
+      link: 'https://nludelhi.ac.in/research/centre-for-innovation-intellectual-property-and-competition-ciipc/',
+    },
+  ];
+
+  const aboutText = content?.aboutInc?.content || content?.aboutMoot || content?.aboutNlu?.content || '';
+
+  const ringLight =
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4D0E12]';
+  const ringDark =
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A5BCD6]';
+
+  const timerUnits: [string, string][] = [
+    [countdown.days, 'days'],
+    [countdown.hours, 'hours'],
+    [countdown.mins, 'minutes'],
+    [countdown.secs, 'seconds'],
+  ];
 
   return (
-    <div className="relative min-h-screen bg-[#FFFDF7] text-[#0A192F] font-serif flex flex-col justify-between p-6 sm:p-10 md:p-16 border-t-[6px] border-[#8B0000] selection:bg-[#8B0000] selection:text-[#FFFDF7] overflow-x-hidden">
-      
-      {/* Full-Screen Background Photo Carousel with Soft Overlay */}
-      <div className="absolute inset-0 pointer-events-none z-0">
-        {BACKGROUND_SLIDES.map((slideSrc, index) => (
-          <div
-            key={slideSrc}
-            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-              index === currentSlide ? 'opacity-35 scale-100' : 'opacity-0 scale-105'
-            } transition-transform duration-6000`}
-          >
-            <Image
-              src={slideSrc}
-              alt="Vidhi Pragati Background"
-              fill
-              priority={index === 0}
-              className="object-cover object-center"
-            />
-          </div>
-        ))}
-
-        {/* Parchment Overlay Gradient for Central Focus */}
-        <div 
-          className="absolute inset-0"
-          style={{
-            background: 'radial-gradient(circle at 50% 50%, rgba(255,253,247,0.75) 0%, rgba(255,253,247,0.94) 80%)'
-          }}
-        />
-      </div>
-
-      {/* Top Header */}
-      <header className="relative z-10 flex flex-col sm:flex-row justify-between items-center gap-4 pb-6 border-b-2 border-[#0A192F]/15">
-        <div className="flex items-center gap-4">
-          <div className="relative w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-2xl bg-white p-2 shadow-md border-2 border-[#D4AF37]/40 flex items-center justify-center">
-            <Image
-              src="/logo-trans.png"
-              alt="Vidhi Pragati Logo"
-              width={64}
-              height={64}
-              className="object-contain w-full h-full"
-              priority
-            />
-          </div>
-          <div className="text-left">
-            <span className="text-[10px] sm:text-xs font-mono tracking-[0.25em] uppercase text-[#8B0000] font-bold block">
-              National Law University Delhi
-            </span>
-            <span className="text-xs sm:text-sm font-mono tracking-wider text-[#0A192F]/80 uppercase block font-semibold mt-0.5">
-              CIIPC &amp; DPIIT-IPR Chair
-            </span>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Centered Content */}
-      <main className="relative z-10 my-auto py-8 max-w-5xl mx-auto w-full text-center flex flex-col items-center">
-        
-        {/* 1. 3rd National IP Moot Court Competition */}
-        <div className="inline-block bg-[#8B0000]/10 border border-[#8B0000]/30 px-4 py-1.5 rounded-full mb-5">
-          <span className="text-xs sm:text-sm font-mono tracking-[0.25em] uppercase text-[#8B0000] font-bold">
-            3rd National IP Moot Court Competition
-          </span>
-        </div>
-
-        {/* 2. Vidhi Pragati 2027 (Fixed sizing & line wrapping) */}
-        <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-serif text-[#0A192F] leading-none tracking-tight font-normal">
-          Vidhi Pragati <span className="italic font-normal text-[#8B0000] whitespace-nowrap">2027</span>
-        </h1>
-
-        {/* 3. Launch of the Competition */}
-        <p className="text-lg sm:text-2xl md:text-3xl font-serif italic text-[#0A192F]/80 mt-4 font-light">
-          Launch of the Competition
-        </p>
-
-        {/* Unified Numerical Countdown Box Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-2xl w-full my-8 sm:my-10">
-          {[
-            { label: 'DAYS', value: timeLeft.days },
-            { label: 'HOURS', value: timeLeft.hours },
-            { label: 'MINUTES', value: timeLeft.minutes },
-            { label: 'SECONDS', value: timeLeft.seconds },
-          ].map((item, i) => (
-            <div 
-              key={i} 
-              className="bg-white/90 backdrop-blur-sm border-2 border-[#0A192F]/20 p-4 sm:p-5 rounded-2xl flex flex-col items-center justify-center shadow-md hover:border-[#8B0000] transition-colors"
+    <div className="min-h-screen bg-[#F5EFC6] font-sans text-[#231815] antialiased selection:bg-[#4D0E12] selection:text-[#F5EFC6]">
+      {/* ---------- 1. HERO ---------- */}
+      <section className="relative isolate flex min-h-svh flex-col justify-between overflow-hidden bg-[#231815] text-[#F5EFC6]">
+        {/* Photo crossfade */}
+        <div className="absolute inset-0 -z-20">
+          {campusImages.map((src: string, idx: number) => (
+            <div
+              key={src}
+              className={`absolute inset-0 transition-all duration-1000 ease-in-out ${
+                idx === heroBgIndex ? 'scale-105 opacity-100' : 'scale-100 opacity-0'
+              }`}
             >
-              <span className="text-3xl sm:text-5xl lg:text-6xl font-mono font-bold text-[#0A192F] tracking-tighter">
-                {item.value}
-              </span>
-              <span className="text-[10px] font-mono tracking-[0.25em] text-[#0A192F]/60 uppercase mt-2 font-bold">
-                {item.label}
-              </span>
+              <Image
+                alt=""
+                src={src}
+                fill
+                priority={idx === 0}
+                sizes="100vw"
+                className="object-cover object-center"
+              />
             </div>
           ))}
         </div>
+        <div className="absolute inset-0 -z-10 bg-linear-to-b from-[#231815]/75 via-[#4D0E12]/55 to-[#231815]" />
 
-        {/* 4. OFFICIAL LAUNCH AT OCTOBER 01, 2026 — 17:00 IST */}
-        <p className="text-xs sm:text-sm font-mono text-[#8B0000] tracking-[0.2em] uppercase font-bold mb-6">
-          OFFICIAL LAUNCH AT OCTOBER 01, 2026 — 17:00 IST
-        </p>
+        {/* Oversized year as a typographic backdrop */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-4 top-24 -z-10 select-none font-serif text-[clamp(8rem,28vw,22rem)] font-bold leading-none text-transparent"
+          style={{ WebkitTextStroke: '1.5px rgba(165,188,214,0.35)' }}
+        >
+          2027
+        </span>
 
-        {/* 5. Email Address Subscription Input */}
-        <div className="w-full max-w-md">
-          {!subscribed ? (
-            <form onSubmit={handleSubscribe} className="flex items-center border-b-2 border-[#8B0000] pb-2 transition-colors focus-within:border-[#0A192F]">
-              <input
-                type="email"
-                placeholder="Email Address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-transparent text-xs sm:text-sm font-mono text-[#0A192F] placeholder-[#0A192F]/50 focus:outline-none flex-1 pr-3 text-center"
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-[#8B0000] hover:bg-[#0A192F] text-[#FFFDF7] text-xs font-mono font-bold uppercase tracking-widest px-5 py-2.5 rounded-xl transition-colors cursor-pointer shrink-0 shadow-md"
+        {/* Title block */}
+        <div className="mx-auto w-full max-w-6xl px-6 pt-32 sm:pt-40">
+          <p className="max-w-xl border-l-2 border-[#A5BCD6] pl-4 font-serif text-base italic leading-snug text-[#F5EFC6]/90 sm:text-xl">
+            3rd National IP Moot Court Competition (IPMC)
+          </p>
+
+          <h1 className="mt-6 font-serif text-6xl font-bold leading-[0.95] tracking-tight sm:text-8xl md:text-9xl">
+            Vidhi
+            <br />
+            Pragati
+          </h1>
+
+          <a
+            href="#register"
+            className={`mt-10 inline-flex items-center gap-3 rounded-full bg-[#F5EFC6] px-8 py-3.5 text-sm font-bold text-[#231815] transition hover:bg-[#A5BCD6] ${ringDark}`}
+          >
+            Register now
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M4 10h12m0 0l-4-4m4 4l-4 4" />
+            </svg>
+          </a>
+        </div>
+
+        {/* Countdown */}
+        {activeMilestone ? (
+          <div className="mx-auto mb-10 mt-16 w-full max-w-6xl px-6 sm:mb-14">
+            <div className="grid items-center gap-6 rounded-2xl border border-[#A5BCD6]/30 bg-[#4D0E12]/80 p-5 backdrop-blur-md sm:grid-cols-[1fr_auto] sm:gap-10 sm:p-7">
+              <div>
+                <p className="text-sm text-[#A5BCD6]">Next deadline</p>
+                <p className="mt-1 line-clamp-2 font-serif text-xl font-bold leading-snug sm:text-2xl">
+                  {activeMilestone.title}
+                </p>
+              </div>
+
+              <div
+                className="grid grid-cols-4 gap-2 sm:gap-4"
+                role="timer"
+                aria-label="Time remaining"
               >
-                {loading ? '...' : 'Notify Me →'}
-              </button>
-            </form>
-          ) : (
-            <div className="bg-[#8B0000]/10 border border-[#8B0000] p-3.5 rounded-xl text-center">
-              <p className="text-xs font-mono text-[#8B0000] tracking-widest uppercase font-bold">
-                ✓ Registered for Official Launch Dispatch
-              </p>
+                {timerUnits.map(([value, label]) => (
+                  <div
+                    key={label}
+                    className="min-w-15 rounded-xl bg-[#231815]/70 px-2 py-3 text-center sm:min-w-21 sm:px-4"
+                  >
+                    <span className="block font-serif text-3xl font-bold tabular-nums leading-none text-[#F5EFC6] sm:text-5xl">
+                      {value}
+                    </span>
+                    <span className="mt-1.5 block text-[11px] text-[#A5BCD6] sm:text-xs">
+                      {label}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
+          </div>
+        ) : (
+          <div className="h-16" />
+        )}
+      </section>
+
+      {/* ---------- 2. ABOUT ---------- */}
+      <section className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-24 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:gap-16">
+        <h2 className="font-serif text-4xl font-bold leading-tight tracking-tight text-[#4D0E12] sm:text-5xl">
+          Welcome to Vidhi Pragati 2027
+        </h2>
+
+        <div className="border-t border-[#231815]/20 pt-6 md:border-l md:border-t-0 md:pl-12 md:pt-0">
+          {aboutText ? (
+            <p className="max-w-[62ch] whitespace-pre-line font-serif text-lg leading-[1.85] text-[#231815]/90 sm:text-xl">
+              {aboutText}
+            </p>
+          ) : (
+            <p className="max-w-[62ch] font-serif text-lg leading-[1.85] text-[#231815]/90 sm:text-xl">
+              The Vidhi Pragati National IP Moot Court Competition (IPMC) is organized by National Law University Delhi in collaboration with CIPAM, DPIIT, and CIIPC. Designed as a landmark academic forum, Vidhi Pragati brings together law students from top universities across India to engage in thought-provoking advocacy, complex Intellectual Property disputes, and emerging jurisprudence.
+            </p>
           )}
         </div>
+      </section>
 
-      </main>
+      {/* ---------- 3. ORGANIZERS ---------- */}
+      <section className="w-full bg-[#A5BCD6] px-6 py-24">
+        <div className="mx-auto max-w-6xl space-y-12">
+          <h2 className="font-serif text-4xl font-bold tracking-tight text-[#231815] sm:text-5xl">
+            Meet the organizers
+          </h2>
 
-      {/* Footer */}
-      <footer className="relative z-10 flex flex-col sm:flex-row justify-between items-center text-xs font-mono text-[#0A192F]/80 gap-3 pt-6 border-t-2 border-[#0A192F]/15">
-        <p className="font-semibold">Sector 14, Dwarka, New Delhi — 110078</p>
-        
-        {/* Carousel Indicators */}
-        <div className="flex items-center gap-1.5">
-          {BACKGROUND_SLIDES.map((_, i) => (
-            <span
-              key={i}
-              className={`h-2 rounded-full transition-all duration-500 ${
-                i === currentSlide ? 'w-6 bg-[#8B0000]' : 'w-2 bg-[#0A192F]/20'
-              }`}
-            />
-          ))}
+          <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {organizers.map((org) => (
+              <li key={org.name}>
+                <a
+                  href={org.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`group flex h-full min-h-60 flex-col justify-between rounded-2xl bg-[#F5EFC6] p-7 transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-18px_rgba(35,24,21,0.55)] ${ringLight}`}
+                >
+                  <div className="flex h-24 w-full items-center justify-center">
+                    <Image
+                      src={org.logo}
+                      alt={org.name}
+                      width={180}
+                      height={90}
+                      className="max-h-20 w-auto object-contain"
+                    />
+                  </div>
+
+                  <div className="mt-4 space-y-1 border-t border-[#231815]/15 pt-4 text-center">
+                    <h3 className="text-base font-bold text-[#231815] transition-colors group-hover:text-[#4D0E12]">
+                      {org.name}
+                    </h3>
+                    <p className="line-clamp-2 text-xs leading-tight text-[#231815]/70">
+                      {org.title}
+                    </p>
+                  </div>
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
+      </section>
 
-        <a href="mailto:dpiit.ipr@nludelhi.ac.in" className="hover:text-[#8B0000] transition-colors font-bold text-[#8B0000]">
-          dpiit.ipr@nludelhi.ac.in
-        </a>
-      </footer>
+      {/* ---------- 4. SCHEDULE (a real sequence: vertical timeline) ---------- */}
+      {processedTimeline.length > 0 && (
+        <section
+          id="schedule"
+          className="w-full bg-[#231815] px-6 py-24 text-[#F5EFC6]"
+        >
+          <div className="mx-auto max-w-4xl space-y-14">
+            <h2 className="font-serif text-4xl font-bold tracking-tight sm:text-5xl">
+              Event schedule
+            </h2>
 
+            <ol className="relative border-l border-[#A5BCD6]/30">
+              {processedTimeline.map((item: any, idx: number) => {
+                const formattedDate = item.startDate
+                  ? new Date(item.startDate).toLocaleDateString('en-US', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })
+                  : 'TBA';
+
+                return (
+                  <li key={idx} className="relative pb-6 pl-8 last:pb-0 sm:pl-12">
+                    {/* marker */}
+                    <span
+                      aria-hidden="true"
+                      className={`absolute -left-1.75 top-7 h-3.5 w-3.5 rounded-full border-2 ${
+                        item.isActive
+                          ? 'border-[#A5BCD6] bg-[#A5BCD6] ring-4 ring-[#A5BCD6]/25'
+                          : item.isPassed
+                          ? 'border-[#A5BCD6]/60 bg-[#A5BCD6]/60'
+                          : 'border-[#A5BCD6]/40 bg-[#231815]'
+                      }`}
+                    />
+
+                    <div
+                      className={`grid gap-1 rounded-2xl px-5 py-5 sm:grid-cols-[150px_1fr] sm:gap-6 sm:px-6 ${
+                        item.isActive
+                          ? 'border border-[#A5BCD6]/50 bg-[#4D0E12]'
+                          : 'border border-transparent'
+                      }`}
+                    >
+                      <time
+                        className={`text-sm font-semibold ${
+                          item.isPassed && !item.isActive
+                            ? 'text-[#F5EFC6]/50'
+                            : 'text-[#A5BCD6]'
+                        }`}
+                      >
+                        {formattedDate}
+                      </time>
+                      <h3
+                        className={`font-serif text-lg font-bold leading-snug sm:text-xl ${
+                          item.isPassed && !item.isActive ? 'text-[#F5EFC6]/60' : ''
+                        }`}
+                      >
+                        {item.title}
+                        {item.isActive && (
+                          <span className="ml-3 inline-block rounded-full bg-[#A5BCD6] px-2.5 py-0.5 align-middle font-sans text-xs font-bold text-[#231815]">
+                            Next
+                          </span>
+                        )}
+                      </h3>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        </section>
+      )}
+
+      {/* ---------- 5. MATERIALS ---------- */}
+      <section id="materials" className="w-full px-6 py-24">
+        <div className="mx-auto max-w-4xl space-y-10">
+          <h2 className="font-serif text-4xl font-bold tracking-tight text-[#4D0E12] sm:text-5xl">
+            Competition materials
+          </h2>
+
+          {resourcesList.length > 0 ? (
+            <ul className="overflow-hidden rounded-2xl border border-[#231815]/15 bg-[#A5BCD6]/25">
+              {resourcesList.map((res) => (
+                <li
+                  key={res.id}
+                  className="border-b border-[#231815]/15 last:border-b-0"
+                >
+                  <a
+                    href={res.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`group flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-[#A5BCD6]/50 sm:px-6 ${ringLight} focus-visible:-outline-offset-2`}
+                  >
+                    <span className="flex min-w-0 items-center gap-4">
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#4D0E12] text-xs font-bold text-[#F5EFC6]">
+                        {res.fileType.slice(0, 4)}
+                      </span>
+                      <span className="font-serif text-base font-bold leading-snug sm:text-lg">
+                        {res.title}
+                      </span>
+                    </span>
+
+                    <span className="flex shrink-0 items-center gap-2 text-sm font-semibold text-[#4D0E12]">
+                      <span className="hidden sm:inline">Download</span>
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 20 20"
+                        className="h-5 w-5 transition group-hover:translate-y-0.5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M10 3v10m0 0l-4-4m4 4l4-4M4 17h12" />
+                      </svg>
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="rounded-2xl border border-dashed border-[#231815]/30 px-6 py-12 text-center text-[#231815]/70">
+              Rulebooks, moot propositions and other official documents will be published here.
+            </p>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
