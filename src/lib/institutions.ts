@@ -1,6 +1,5 @@
 export const INVITED_INSTITUTIONS = [
   "National Law School of India University",
-  "National Law University, Delhi",
   "NALSAR University of Law, Hyderabad",
   "The West Bengal National University of Juridical Sciences",
   "Gujarat National Law University, Gandhinagar",
@@ -54,11 +53,7 @@ export const INVITED_INSTITUTIONS = [
   "India International University of Legal Education and Research, Goa",
   "National Law University Meghalaya",
   "University of Delhi",
-  "Banaras Hindu University",
-  "Birla Institute of Technology and Science, Pilani",
-  "Manipal Academy of Higher Education",
   "O.P. Jindal Global University / Jindal Global Law School",
-  "Shiv Nadar University",
   "Government Law College, Mumbai",
   "ILS Law College, Pune",
   "Uttaranchal University, Law College Dehradun",
