@@ -63,7 +63,7 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop navigation */}
-        <nav aria-label="Main" className="hidden items-center gap-7 lg:flex">
+        <nav aria-label="Main" className="hidden items-center gap-6 xl:flex">
           {links.map((link) => {
             const current = isCurrent(link.href);
             return (
@@ -81,6 +81,13 @@ export default function Navbar() {
               </Link>
             );
           })}
+          <Link
+            href="/register"
+            aria-current={isCurrent('/register') ? 'page' : undefined}
+            className={`rounded-full bg-[#F5EFC6] px-5 py-2 text-sm font-bold text-[#231815] transition hover:bg-[#A5BCD6] ${ring}`}
+          >
+            Register
+          </Link>
         </nav>
 
         {/* Mobile menu button */}
@@ -90,7 +97,7 @@ export default function Navbar() {
           aria-expanded={open}
           aria-controls="mobile-nav"
           aria-label={open ? 'Close menu' : 'Open menu'}
-          className={`flex h-11 w-11 items-center justify-center rounded-full border border-[#A5BCD6]/40 transition hover:border-[#A5BCD6] lg:hidden ${ring}`}
+          className={`flex h-11 w-11 items-center justify-center rounded-full border border-[#A5BCD6]/40 transition hover:border-[#A5BCD6] xl:hidden ${ring}`}
         >
           <svg
             aria-hidden="true"
@@ -111,7 +118,7 @@ export default function Navbar() {
         <nav
           id="mobile-nav"
           aria-label="Main"
-          className="border-t border-[#A5BCD6]/25 bg-[#231815] px-6 pb-5 pt-2 lg:hidden"
+          className="border-t border-[#A5BCD6]/25 bg-[#231815] px-6 pb-5 pt-2 xl:hidden"
         >
           <ul className="divide-y divide-[#A5BCD6]/15">
             {links.map((link) => {
@@ -135,6 +142,14 @@ export default function Navbar() {
               );
             })}
           </ul>
+          <Link
+            href="/register"
+            onClick={() => setOpen(false)}
+            aria-current={isCurrent('/register') ? 'page' : undefined}
+            className={`mt-4 flex items-center justify-center rounded-full bg-[#F5EFC6] px-6 py-3 text-base font-bold text-[#231815] transition hover:bg-[#A5BCD6] ${ring}`}
+          >
+            Register
+          </Link>
         </nav>
       )}
     </header>

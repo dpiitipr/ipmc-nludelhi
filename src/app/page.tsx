@@ -214,7 +214,7 @@ export default function HomePage() {
           </h1>
 
           <a
-            href="#register"
+            href="/register"
             className={`mt-10 inline-flex items-center gap-3 rounded-full bg-[#F5EFC6] px-8 py-3.5 text-sm font-bold text-[#231815] transition hover:bg-[#A5BCD6] ${ringDark}`}
           >
             Register now

@@ -3,8 +3,8 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
 export const metadata = {
-  title: 'Vidhi Pragati | National IP Moot Court Competition (IPMC)',
-  description: 'Official portal for Vidhi Pragati: National IP Moot Court Competition organized by CIIPC & IPR Chair, NLU Delhi in collaboration with DPIIT.',
+  title: '3rd Vidhi Pragati | National IP Moot Court Competition (IPMC) 2027',
+  description: 'Official website of the Vidhi Pragati: National IP Moot Court Competition organised by CIIPC & IPR Chair, NLU Delhi in collaboration with DPIIT.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
