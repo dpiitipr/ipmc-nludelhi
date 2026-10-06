@@ -17,7 +17,7 @@ const links = [
   { label: 'Schedule', href: '/#schedule' },
   { label: 'Materials', href: '/#materials' },
   { label: 'Clarifications', href: '/clarifications' },
-  { label: 'Past editions', href: '/past-editions' },
+  { label: 'Past Editions', href: '/past-editions' },
   { label: 'Contact', href: '/contact' },
 ];
 
