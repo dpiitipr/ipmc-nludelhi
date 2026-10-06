@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { uploadToDrive } from '@/lib/drive';
+import { registrationState } from '@/lib/schedule';
+import { INVITED_INSTITUTIONS } from '@/lib/institutions';
 
 export const runtime = 'nodejs';
 
@@ -22,11 +24,26 @@ const clean = (s: string) => s.replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, 
 export async function POST(req: Request) {
   try {
     const fd = await req.formData();
+
+    // Launch guard, with the private preview key as the only bypass
+    const previewOk = !!process.env.PREVIEW_KEY && fd.get('preview') === process.env.PREVIEW_KEY;
+    const state = registrationState();
+    if (state !== 'open' && !previewOk) {
+      return NextResponse.json(
+        { error: state === 'before' ? 'Registration has not opened yet.' : 'Registration is closed.' },
+        { status: 403 }
+      );
+    }
+
     const file = fd.get('file');
     const kind = String(fd.get('kind') || '') as keyof typeof RULES;
     const label = clean(String(fd.get('label') || 'file'));
-    const university = clean(String(fd.get('university') || 'unknown'));
+    const universityRaw = String(fd.get('university') || '');
+    const university = clean(universityRaw || 'unknown');
 
+    if (!(INVITED_INSTITUTIONS as readonly string[]).includes(universityRaw)) {
+      return NextResponse.json({ error: 'Please select your institution first.' }, { status: 400 });
+    }
     if (!(file instanceof File)) {
       return NextResponse.json({ error: 'No file received.' }, { status: 400 });
     }
@@ -41,7 +58,8 @@ export async function POST(req: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const name = `${university}__${label}__${Date.now()}.${EXT[file.type]}`;
+    const prefix = previewOk && state !== 'open' ? 'PREVIEW__' : '';
+    const name = `${prefix}${university}__${label}__${Date.now()}.${EXT[file.type]}`;
     const result = await uploadToDrive({ name, mimeType: file.type, buffer });
 
     return NextResponse.json({ url: result.url, name: result.name });

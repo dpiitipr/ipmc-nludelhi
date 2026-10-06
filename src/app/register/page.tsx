@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { INVITED_INSTITUTIONS } from '@/lib/institutions';
-import { OPEN_AT, CLOSE_AT, registrationState } from '@/lib/schedule';
+import { OPEN_AT, registrationState, isPreview } from '@/lib/schedule';
 
 /*
   Palette (swatches only):
@@ -11,6 +11,19 @@ import { OPEN_AT, CLOSE_AT, registrationState } from '@/lib/schedule';
 */
 
 const MAX_MB = 4;
+
+// "6 October 2026 at 1:45 pm IST", always shown in IST
+const openLabel = new Intl.DateTimeFormat('en-IN', {
+  timeZone: 'Asia/Kolkata',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true,
+})
+  .format(new Date(OPEN_AT))
+  .replace(',', ' at') + ' IST';
 
 /* ---------- shared pieces (defined at module level so inputs keep focus) ---------- */
 
@@ -207,14 +220,15 @@ function PersonFields({
 function splitTime(ms: number) {
   const total = Math.max(0, Math.floor(ms / 1000));
   return {
-    h: Math.floor(total / 3600),
+    d: Math.floor(total / 86400),
+    h: Math.floor((total % 86400) / 3600),
     m: Math.floor((total % 3600) / 60),
     s: total % 60,
   };
 }
 
 function Countdown({ ms }: { ms: number }) {
-  const { h, m, s } = splitTime(ms);
+  const { d, h, m, s } = splitTime(ms);
   const box = (value: number, label: string) => (
     <div className="min-w-21 rounded-2xl border border-[#231815]/20 bg-[#A5BCD6]/25 px-5 py-4 text-center">
       <div className="font-serif text-4xl font-bold tabular-nums text-[#4D0E12]">
@@ -225,6 +239,7 @@ function Countdown({ ms }: { ms: number }) {
   );
   return (
     <div className="flex flex-wrap justify-center gap-3" role="timer" aria-live="off">
+      {d > 0 && box(d, 'Days')}
       {box(h, 'Hours')}
       {box(m, 'Minutes')}
       {box(s, 'Seconds')}
@@ -291,14 +306,18 @@ export default function RegisterPage() {
 
   // null until mounted, so server and client render the same HTML
   const [now, setNow] = useState<number | null>(null);
+  const [previewKey, setPreviewKey] = useState<string | null>(null);
 
   useEffect(() => {
     setNow(Date.now());
+    setPreviewKey(new URLSearchParams(window.location.search).get('preview'));
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  const phase = now === null ? null : registrationState(now);
+  const previewing = isPreview(previewKey);
+  const publicState = now === null ? null : registrationState(now);
+  const phase = now === null ? null : previewing ? 'open' : publicState;
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -318,6 +337,7 @@ export default function RegisterPage() {
     fd.append('kind', kind);
     fd.append('label', label);
     fd.append('university', formData.university);
+    fd.append('preview', previewKey ?? '');
     const res = await fetch('/api/upload', { method: 'POST', body: fd });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `Upload failed for ${label}.`);
@@ -347,7 +367,14 @@ export default function RegisterPage() {
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, bonafideUrl, sp1PhotoUrl, sp2PhotoUrl, resPhotoUrl }),
+        body: JSON.stringify({
+          ...formData,
+          bonafideUrl,
+          sp1PhotoUrl,
+          sp2PhotoUrl,
+          resPhotoUrl,
+          preview: previewKey,
+        }),
       });
 
       const data = await res.json();
@@ -356,7 +383,9 @@ export default function RegisterPage() {
         setStatus({
           loading: false,
           success: true,
-          message: 'Registration submitted successfully. The details have been recorded.',
+          message: data.emailSent
+            ? 'Registration submitted successfully. A copy has been emailed to all the addresses you provided.'
+            : 'Registration submitted successfully. We could not send the confirmation email, but your details are recorded.',
         });
       } else {
         setStatus({
@@ -400,7 +429,7 @@ export default function RegisterPage() {
       {phase === 'before' && now !== null && (
         <main className="mx-auto max-w-5xl px-6 py-24 text-center">
           <h2 className="font-serif text-3xl font-bold text-[#4D0E12] sm:text-4xl">
-            Registration opens today at 1:45 PM IST
+            Registration opens on {openLabel}
           </h2>
           <p className="mx-auto mt-3 max-w-md text-[#231815]/75">
             The form will appear here automatically. You can keep this page open.
@@ -426,6 +455,12 @@ export default function RegisterPage() {
       {/* ---------- FORM ---------- */}
       {phase === 'open' && (
         <main className="mx-auto max-w-5xl px-6 pb-28 pt-6">
+          {previewing && publicState !== 'open' && (
+            <div className="mt-4 rounded-xl bg-[#A5BCD6] px-4 py-3 text-sm font-semibold">
+              Preview mode: registration is not public yet. Submissions will be marked as test entries.
+            </div>
+          )}
+
           <form onSubmit={handleSubmit}>
             <Section
               title="Institution"
