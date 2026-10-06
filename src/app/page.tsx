@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { hygraphClient } from '@/lib/hygraph';
 import { GET_VIDHI_CONTENT } from '@/lib/queries';
 import AbstractArt from '@/components/AbstractArt';
+import MaterialsList from '@/components/MaterialsList';
+import { normalizeMaterials, hasAnyFile } from '@/lib/materials';
 
 /*
   Palette (from the supplied swatches only):
@@ -53,40 +55,24 @@ const formatRange = (start?: string, end?: string) => {
   }
 };
 
-/* ---------- resources ----------
-   The resource model's file field name isn't known to this page, so the
-   query tries the usual names in turn and uses the first one Hygraph accepts.
-   Check the browser console to see which one matched. */
-
-const RESOURCE_SELECTIONS = [
-  'file { url fileName mimeType }',
-  'asset { url fileName mimeType }',
-  'document { url fileName mimeType }',
-  'upload { url fileName mimeType }',
-  'url',
-  '',
-];
+/* ---------- resources fallback ----------
+   Used only if the main query returned no resource files. */
 
 async function fetchResources(): Promise<any[]> {
-  for (const selection of RESOURCE_SELECTIONS) {
-    const query = `query HomeResources { vidhiMarketings(first: 1) { resources { id title ${selection} } } }`;
-    try {
-      const data: any = await hygraphClient.request(query);
-      const list = data?.vidhiMarketings?.[0]?.resources;
-      if (Array.isArray(list)) {
-        if (!selection) {
-          console.warn('Resources loaded, but no file field matched. Titles only.');
-        }
-        if (list.length === 0) {
-          console.warn('Resources query worked but returned 0 items. Are the resource entries Published?');
-        }
-        return list;
+  try {
+    const data: any = await hygraphClient.request(
+      `query HomeResources { vidhiMarketings(first: 1) { resources { id title file { id url fileName mimeType } } } }`
+    );
+    const list = data?.vidhiMarketings?.[0]?.resources;
+    if (Array.isArray(list)) {
+      if (list.length === 0) {
+        console.warn('Resources query worked but returned 0 items. Are the entries and assets Published?');
       }
-    } catch {
-      // unknown field on the resource model: try the next candidate
+      return list;
     }
+  } catch (err) {
+    console.error('Could not load resources from Hygraph. Check the resource component fields.', err);
   }
-  console.error('Could not load resources from Hygraph. Check the resource model fields and permissions.');
   return [];
 }
 
@@ -127,24 +113,25 @@ export default function HomePage() {
     return () => clearInterval(bgTimer);
   }, [campusImages.length]);
 
-  // Hygraph fetch
+  // Hygraph fetch (resources come with it; the fallback runs only if no files were returned)
   useEffect(() => {
     async function fetchContent() {
       try {
         const data: any = await hygraphClient.request(GET_VIDHI_CONTENT);
-        if (data?.vidhiMarketings?.[0]) {
-          setContent(data.vidhiMarketings[0]);
+        const first = data?.vidhiMarketings?.[0];
+        if (first) {
+          setContent(first);
+          if (!hasAnyFile(first.resources)) {
+            setFetchedResources(await fetchResources());
+          }
         }
       } catch (err) {
         console.error('Hygraph Fetch Error:', err);
+        // The main query failed (for example a field mismatch): still try resources alone
+        setFetchedResources(await fetchResources());
       }
     }
     fetchContent();
-  }, []);
-
-  // Resources: separate request so a wrong field name can never break the rest of the page
-  useEffect(() => {
-    fetchResources().then(setFetchedResources);
   }, []);
 
   // Timeline milestones
@@ -190,34 +177,10 @@ export default function HomePage() {
     };
   }, [activeMilestone, now]);
 
-  // Normalize resources (from the main query if present, otherwise the dedicated fetch)
+  // Resources: from the main query if it has files, otherwise the fallback fetch
   const resourcesList = useMemo(() => {
-    const fromContent =
-      Array.isArray(content?.resources) && content.resources.length > 0
-        ? content.resources
-        : Array.isArray(content?.resource) && content.resource.length > 0
-        ? content.resource
-        : null;
-    const rawList = fromContent || fetchedResources;
-    if (!Array.isArray(rawList)) return [];
-
-    return rawList.map((res: any, i: number) => {
-      const assetObj =
-        res.asset || res.file || res.document || res.upload || (res.url ? res : null);
-      const title =
-        res.title ||
-        res.name ||
-        assetObj?.title ||
-        assetObj?.fileName ||
-        'Official Resource Document';
-      const fileUrl = assetObj?.url || res.url || '#';
-      const mimeType = assetObj?.mimeType || res.mimeType || '';
-      const fileType = mimeType.includes('/')
-        ? mimeType.split('/')[1].toUpperCase()
-        : 'PDF';
-
-      return { id: res.id || `resource-${i}`, title, fileUrl, fileType };
-    });
+    const source = hasAnyFile(content?.resources) ? content.resources : fetchedResources;
+    return normalizeMaterials(source, 'resource');
   }, [content, fetchedResources]);
 
   // Order: DPIIT, CIPAM, NLU Delhi, DPIIT IPR Chair, CIIPC
@@ -281,7 +244,7 @@ export default function HomePage() {
   const prevSlide = () => setSlide((s) => (s <= 0 ? maxSlide : s - 1));
   const nextSlide = () => setSlide((s) => (s >= maxSlide ? 0 : s + 1));
 
-  /* ---------- about copy: lead sentence + remainder ---------- */
+  /* ---------- about copy ---------- */
   const aboutText =
     content?.aboutInc?.content || content?.aboutMoot || content?.aboutNlu?.content || '';
   const aboutFull = (aboutText || FALLBACK_ABOUT).trim();
@@ -609,46 +572,7 @@ export default function HomePage() {
           </h2>
 
           {resourcesList.length > 0 ? (
-            <ul className="overflow-hidden rounded-2xl border border-[#231815]/15 bg-[#A5BCD6]/25">
-              {resourcesList.map((res) => (
-                <li
-                  key={res.id}
-                  className="border-b border-[#231815]/15 last:border-b-0"
-                >
-                  <a
-                    href={res.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`group flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-[#A5BCD6]/50 sm:px-6 ${ringLight} focus-visible:-outline-offset-2`}
-                  >
-                    <span className="flex min-w-0 items-center gap-4">
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#4D0E12] text-xs font-bold text-[#F5EFC6]">
-                        {res.fileType.slice(0, 4)}
-                      </span>
-                      <span className="font-serif text-base font-bold leading-snug sm:text-lg">
-                        {res.title}
-                      </span>
-                    </span>
-
-                    <span className="flex shrink-0 items-center gap-2 text-sm font-semibold text-[#4D0E12]">
-                      <span className="hidden sm:inline">Download</span>
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 20 20"
-                        className="h-5 w-5 transition group-hover:translate-y-0.5"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M10 3v10m0 0l-4-4m4 4l4-4M4 17h12" />
-                      </svg>
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
+            <MaterialsList items={resourcesList} />
           ) : (
             <p className="rounded-2xl border border-dashed border-[#231815]/30 px-6 py-12 text-center text-[#231815]/70">
               Rulebooks, moot propositions and other official documents will be published here.

@@ -11,9 +11,18 @@ export const GET_VIDHI_CONTENT = gql`
         startDate
         endDate
       }
+      resources {
+        id
+        title
+        file {
+          id
+          url
+          fileName
+          mimeType
+        }
+      }
     }
 
-    # Query all PastEditions from Hygraph
     pastEditions(orderBy: year_DESC) {
       id
       title
@@ -23,11 +32,12 @@ export const GET_VIDHI_CONTENT = gql`
       description
       finalVideoUrl
       valedictoryVideoUrl
-      
+
       materials {
         id
         title
         file {
+          id
           url
           fileName
           mimeType
