@@ -63,8 +63,18 @@ export async function POST(req: Request) {
     const result = await uploadToDrive({ name, mimeType: file.type, buffer });
 
     return NextResponse.json({ url: result.url, name: result.name });
-  } catch (err) {
-    console.error('Drive upload failed:', err);
-    return NextResponse.json({ error: 'Upload failed. Please try again.' }, { status: 500 });
+  } catch (err: any) {
+    const g = err?.response?.data?.error;
+    const reason = g?.errors?.[0]?.reason || g?.status || err?.code || '';
+    const detail = g?.message || err?.message || String(err);
+    console.error('Drive upload failed:', reason, detail, g || '');
+
+    let message = 'Upload failed. Please try again.';
+    if (reason === 'storageQuotaExceeded') message = 'Server storage is not configured (Drive quota).';
+    else if (reason === 'notFound' || err?.code === 404) message = 'Server cannot find the upload folder.';
+    else if (/invalid_grant|DECODER|PEM|private key/i.test(detail)) message = 'Server Google key is invalid.';
+    else if (/Missing|env/i.test(detail)) message = 'Server Google settings are missing.';
+
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
