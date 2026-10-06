@@ -55,25 +55,25 @@ export default function AboutPage() {
 
   const people = [
     {
-      name: 'Prof. G. S. Bajpai',
+      name: 'Prof.(Dr.) G. S. Bajpai',
       role: 'Patron-in-Chief',
       detail: 'Vice-Chancellor, National Law University Delhi',
       photo: '/prof-g-s-bajpai-VC-NLUD.jpg',
     },
     {
-      name: 'Amardeep Singh Bhatia',
+      name: 'Shri. Amardeep Singh Bhatia',
       role: 'Patron-in-Chief',
       detail: 'Secretary, Department for Promotion of Industry and Internal Trade',
       photo: '/Amardeep%20Singh%20Bhatia.png',
     },
     {
-      name: 'Risham Garg',
+      name: 'Prof. (Dr.) Risham Garg',
       role: 'Patron',
       detail: 'Registrar, National Law University Delhi',
       photo: '/Risham-Garg.jpg',
     },
     {
-      name: 'Nishtha Sharma',
+      name: 'Ms. Nishtha Sharma',
       role: 'Moot Director',
       detail: 'Research and Programme Coordinator, National Law University Delhi',
       photo: '/Nishtha%20Sharma.JPG',
