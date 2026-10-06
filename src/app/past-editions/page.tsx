@@ -96,10 +96,6 @@ export default function PastEditionsIndexPage() {
           <h1 className="font-serif text-5xl font-bold leading-[1.05] tracking-tight sm:text-7xl">
             Past editions
           </h1>
-          <p className="mt-6 max-w-xl border-l-2 border-[#A5BCD6] pl-4 font-serif text-lg italic leading-snug text-[#F5EFC6]/85 sm:text-xl">
-            Final-round recordings, moot propositions and organising committee
-            photographs from every Vidhi Pragati competition.
-          </p>
         </div>
       </header>
 

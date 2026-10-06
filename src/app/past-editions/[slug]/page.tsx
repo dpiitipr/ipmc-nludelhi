@@ -71,6 +71,27 @@ const asHttpUrl = (raw?: string | null) => {
   return /^https?:\/\//i.test(v) ? v : null;
 };
 
+// Finds a file URL on a material whatever the field is called:
+// m.file.url, m.url, m.document.url, or a plain URL string.
+const findFileUrl = (m: any): { url: string | null; mime: string; name: string } => {
+  const candidates = [m?.file, m?.document, m?.pdf, m?.asset, m];
+  for (const c of candidates) {
+    if (c && typeof c === 'object' && typeof c.url === 'string' && c.url.trim()) {
+      return { url: c.url.trim(), mime: c.mimeType || '', name: c.fileName || '' };
+    }
+  }
+  for (const val of Object.values(m || {})) {
+    if (val && typeof val === 'object' && typeof (val as any).url === 'string') {
+      const o = val as any;
+      return { url: o.url.trim(), mime: o.mimeType || '', name: o.fileName || '' };
+    }
+    if (typeof val === 'string' && /^https?:\/\//i.test(val.trim())) {
+      return { url: val.trim(), mime: '', name: '' };
+    }
+  }
+  return { url: null, mime: '', name: '' };
+};
+
 export default function SingleEditionPage() {
   const params = useParams();
   const slug = params?.slug as string;
@@ -107,13 +128,33 @@ export default function SingleEditionPage() {
                 `query EditionVideos { pastEditions { id finalVideoUrl valedictoryVideoUrl } }`
               );
               const match = v?.pastEditions?.find((x: any) => x.id === found.id);
-              if (match) merged = { ...found, ...match };
+              if (match) merged = { ...merged, ...match };
             } catch (err) {
               console.warn(
                 'Could not read finalVideoUrl / valedictoryVideoUrl from Hygraph. Check the field API IDs on the past edition model.',
                 err
               );
             }
+          }
+
+          // Same for materials: if none of them came back with a file link,
+          // ask for the file field directly.
+          const mats: any[] = Array.isArray(merged.materials) ? merged.materials : [];
+          const hasAnyLink = mats.some((m) => findFileUrl(m).url);
+          if (!hasAnyLink) {
+            try {
+              const r: any = await hygraphClient.request(
+                `query EditionMaterials { pastEditions { id materials { id title file { url fileName mimeType } } } }`
+              );
+              const match = r?.pastEditions?.find((x: any) => x.id === found.id);
+              if (match?.materials?.length) merged = { ...merged, materials: match.materials };
+            } catch (err) {
+              console.warn(
+                'Could not read materials.file from Hygraph. Check the API IDs of the materials field and its file field.',
+                err
+              );
+            }
+            console.log('materials from Hygraph:', merged.materials);
           }
 
           setEdition(merged);
@@ -193,14 +234,12 @@ export default function SingleEditionPage() {
   }
 
   const materialsList = (edition.materials || []).map((m: any, i: number) => {
-    const fileObj = m.file || (m.url ? m : null);
+    const f = findFileUrl(m);
     return {
       id: m.id || `material-${i}`,
-      title: m.title || fileObj?.fileName || 'Document',
-      fileUrl: fileObj?.url || m.url || '#',
-      fileType: (fileObj?.mimeType || m.mimeType || '').includes('/')
-        ? (fileObj?.mimeType || m.mimeType).split('/')[1].toUpperCase()
-        : 'PDF',
+      title: m.title || f.name || 'Document',
+      fileUrl: f.url, // null when no link was found
+      fileType: f.mime.includes('/') ? f.mime.split('/')[1].toUpperCase() : 'PDF',
     };
   });
 
@@ -334,14 +373,9 @@ export default function SingleEditionPage() {
             </h2>
 
             <ul className="overflow-hidden rounded-2xl border border-[#231815]/15 bg-[#A5BCD6]/25">
-              {materialsList.map((doc: any) => (
-                <li key={doc.id} className="border-b border-[#231815]/15 last:border-b-0">
-                  <a
-                    href={doc.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`group flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-[#A5BCD6]/50 sm:px-6 ${ringLight} focus-visible:-outline-offset-2`}
-                  >
+              {materialsList.map((doc: any) => {
+                const inner = (
+                  <>
                     <span className="flex min-w-0 items-center gap-4">
                       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#4D0E12] text-xs font-bold text-[#F5EFC6]">
                         {doc.fileType.slice(0, 4)}
@@ -352,23 +386,48 @@ export default function SingleEditionPage() {
                     </span>
 
                     <span className="flex shrink-0 items-center gap-2 text-sm font-semibold text-[#4D0E12]">
-                      <span className="hidden sm:inline">Download</span>
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 20 20"
-                        className="h-5 w-5 transition group-hover:translate-y-0.5"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M10 3v10m0 0l-4-4m4 4l4-4M4 17h12" />
-                      </svg>
+                      {doc.fileUrl ? (
+                        <>
+                          <span className="hidden sm:inline">Download</span>
+                          <svg
+                            aria-hidden="true"
+                            viewBox="0 0 20 20"
+                            className="h-5 w-5 transition group-hover:translate-y-0.5"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M10 3v10m0 0l-4-4m4 4l4-4M4 17h12" />
+                          </svg>
+                        </>
+                      ) : (
+                        <span className="text-[#231815]/55">Not available yet</span>
+                      )}
                     </span>
-                  </a>
-                </li>
-              ))}
+                  </>
+                );
+
+                return (
+                  <li key={doc.id} className="border-b border-[#231815]/15 last:border-b-0">
+                    {doc.fileUrl ? (
+                      <a
+                        href={doc.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`group flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-[#A5BCD6]/50 sm:px-6 ${ringLight} focus-visible:-outline-offset-2`}
+                      >
+                        {inner}
+                      </a>
+                    ) : (
+                      <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
+                        {inner}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </section>
         )}
