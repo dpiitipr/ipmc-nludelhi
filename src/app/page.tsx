@@ -428,7 +428,7 @@ export default function HomePage() {
       >
         <div className="mx-auto max-w-6xl space-y-12">
           <h2 className="font-serif text-4xl font-bold tracking-tight text-[#231815] sm:text-5xl">
-            Meet the organizers
+            Meet the Organisers
           </h2>
 
           <div
@@ -542,7 +542,7 @@ export default function HomePage() {
         >
           <div className="mx-auto max-w-4xl space-y-14">
             <h2 className="font-serif text-4xl font-bold tracking-tight sm:text-5xl">
-              Event schedule
+              Event Schedule
             </h2>
 
             <ol className="relative border-l border-[#A5BCD6]/30">
@@ -605,7 +605,7 @@ export default function HomePage() {
       <section id="materials" className="w-full px-6 py-24">
         <div className="mx-auto max-w-4xl space-y-10">
           <h2 className="font-serif text-4xl font-bold tracking-tight text-[#4D0E12] sm:text-5xl">
-            Competition materials
+            Competition Materials
           </h2>
 
           {resourcesList.length > 0 ? (

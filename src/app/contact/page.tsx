@@ -167,7 +167,7 @@ export default function ContactPage() {
         <div className="absolute inset-0 -z-10 bg-linear-to-br from-[#231815] via-[#231815] to-[#4D0E12]" />
         <div className="mx-auto max-w-6xl px-6 pb-24 pt-32 sm:pb-28 sm:pt-40">
           <h1 className="font-serif text-5xl font-bold leading-[1.05] tracking-tight sm:text-7xl">
-            Contact us
+            Contact Us
           </h1>
           <p className="mt-6 max-w-xl border-l-2 border-[#A5BCD6] pl-4 font-serif text-lg italic leading-snug text-[#F5EFC6]/85 sm:text-xl">
             Questions about the moot proposition, rules or registration for

@@ -131,7 +131,7 @@ export default function AboutPage() {
       <section className="w-full bg-[#A5BCD6] px-6 py-24">
         <div className="mx-auto max-w-6xl space-y-12">
           <h2 className="font-serif text-4xl font-bold tracking-tight text-[#231815] sm:text-5xl">
-            Patrons and moot director
+            Patrons and Moot Director
           </h2>
 
           <ul className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
