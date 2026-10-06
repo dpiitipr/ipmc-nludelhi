@@ -51,6 +51,7 @@ export const INVITED_INSTITUTIONS = [
   "Dr. B. R. Ambedkar National Law University, Haryana",
   "National Law University Tripura",
   "Dr. Rajendra Prasad National University of Law, Prayagraj",
+  "Damodaram Sanjivayya National Law University, Visakhapatnam, Andhra Pradesh",
   "India International University of Legal Education and Research, Goa",
   "National Law University Meghalaya",
   "University of Delhi",

@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { hygraphClient } from '@/lib/hygraph';
 import { GET_VIDHI_CONTENT } from '@/lib/queries';
+import AbstractArt from '@/components/AbstractArt';
 
 /*
   Palette (from the supplied swatches only):
@@ -15,10 +17,91 @@ import { GET_VIDHI_CONTENT } from '@/lib/queries';
   Tints use opacity modifiers of these same hex values.
 */
 
+const FALLBACK_ABOUT =
+  'The Vidhi Pragati National IP Moot Court Competition (IPMC) is organized by National Law University Delhi in collaboration with CIPAM, DPIIT, and CIIPC. Designed as a landmark academic forum, Vidhi Pragati brings together law students from top universities across India to engage in thought-provoking advocacy, complex Intellectual Property disputes, and emerging jurisprudence.';
+
+/* ---------- date helpers (always shown in IST, day-first) ---------- */
+
+type DateParts = { d: string; m: string; y: string };
+
+const dateParts = (value: string): DateParts => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).formatToParts(new Date(value));
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
+  return { d: get('day'), m: get('month'), y: get('year') };
+};
+
+const full = (x: DateParts) => `${x.d} ${x.m} ${x.y}`;
+
+// "05 Jan 2027", "05 – 12 Jan 2027", "28 Jan – 04 Feb 2027" or a full range across years
+const formatRange = (start?: string, end?: string) => {
+  if (!start) return 'TBA';
+  try {
+    const s = dateParts(start);
+    if (!end) return full(s);
+    const e = dateParts(end);
+    if (full(s) === full(e)) return full(s);
+    if (s.m === e.m && s.y === e.y) return `${s.d} – ${e.d} ${s.m} ${s.y}`;
+    if (s.y === e.y) return `${s.d} ${s.m} – ${e.d} ${e.m} ${s.y}`;
+    return `${full(s)} – ${full(e)}`;
+  } catch {
+    return 'TBA';
+  }
+};
+
+/* ---------- resources ----------
+   The resource model's file field name isn't known to this page, so the
+   query tries the usual names in turn and uses the first one Hygraph accepts.
+   Check the browser console to see which one matched. */
+
+const RESOURCE_SELECTIONS = [
+  'file { url fileName mimeType }',
+  'asset { url fileName mimeType }',
+  'document { url fileName mimeType }',
+  'upload { url fileName mimeType }',
+  'url',
+  '',
+];
+
+async function fetchResources(): Promise<any[]> {
+  for (const selection of RESOURCE_SELECTIONS) {
+    const query = `query HomeResources { vidhiMarketings(first: 1) { resources { id title ${selection} } } }`;
+    try {
+      const data: any = await hygraphClient.request(query);
+      const list = data?.vidhiMarketings?.[0]?.resources;
+      if (Array.isArray(list)) {
+        if (!selection) {
+          console.warn('Resources loaded, but no file field matched. Titles only.');
+        }
+        if (list.length === 0) {
+          console.warn('Resources query worked but returned 0 items. Are the resource entries Published?');
+        }
+        return list;
+      }
+    } catch {
+      // unknown field on the resource model: try the next candidate
+    }
+  }
+  console.error('Could not load resources from Hygraph. Check the resource model fields and permissions.');
+  return [];
+}
+
 export default function HomePage() {
   const [content, setContent] = useState<any>(null);
+  const [fetchedResources, setFetchedResources] = useState<any[]>([]);
   const [now, setNow] = useState<Date | null>(null);
   const [heroBgIndex, setHeroBgIndex] = useState<number>(0);
+
+  // Organizer carousel
+  const [slide, setSlide] = useState(0);
+  const [perView, setPerView] = useState(3);
+  const [hoverPaused, setHoverPaused] = useState(false);
+  const [userPaused, setUserPaused] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
 
   // Local campus photos gallery
   const campusImages = [
@@ -57,6 +140,11 @@ export default function HomePage() {
       }
     }
     fetchContent();
+  }, []);
+
+  // Resources: separate request so a wrong field name can never break the rest of the page
+  useEffect(() => {
+    fetchResources().then(setFetchedResources);
   }, []);
 
   // Timeline milestones
@@ -102,13 +190,20 @@ export default function HomePage() {
     };
   }, [activeMilestone, now]);
 
-  // Normalize Hygraph resources
+  // Normalize resources (from the main query if present, otherwise the dedicated fetch)
   const resourcesList = useMemo(() => {
-    const rawList = content?.resources || content?.resource || [];
+    const fromContent =
+      Array.isArray(content?.resources) && content.resources.length > 0
+        ? content.resources
+        : Array.isArray(content?.resource) && content.resource.length > 0
+        ? content.resource
+        : null;
+    const rawList = fromContent || fetchedResources;
     if (!Array.isArray(rawList)) return [];
 
     return rawList.map((res: any, i: number) => {
-      const assetObj = res.asset || res.file || (res.url ? res : null);
+      const assetObj =
+        res.asset || res.file || res.document || res.upload || (res.url ? res : null);
       const title =
         res.title ||
         res.name ||
@@ -123,7 +218,7 @@ export default function HomePage() {
 
       return { id: res.id || `resource-${i}`, title, fileUrl, fileType };
     });
-  }, [content]);
+  }, [content, fetchedResources]);
 
   // Order: DPIIT, CIPAM, NLU Delhi, DPIIT IPR Chair, CIIPC
   const organizers = [
@@ -159,12 +254,43 @@ export default function HomePage() {
     },
   ];
 
-  const aboutText = content?.aboutInc?.content || content?.aboutMoot || content?.aboutNlu?.content || '';
+  /* ---------- organizer carousel: 3 / 2 / 1 per view ---------- */
+  useEffect(() => {
+    setReduceMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const update = () =>
+      setPerView(window.innerWidth >= 1024 ? 3 : window.innerWidth >= 640 ? 2 : 1);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  const maxSlide = Math.max(0, organizers.length - perView);
+
+  useEffect(() => {
+    setSlide((s) => Math.min(s, maxSlide));
+  }, [maxSlide]);
+
+  const autoplay = !hoverPaused && !userPaused && !reduceMotion && maxSlide > 0;
+
+  useEffect(() => {
+    if (!autoplay) return;
+    const t = setInterval(() => setSlide((s) => (s >= maxSlide ? 0 : s + 1)), 3500);
+    return () => clearInterval(t);
+  }, [autoplay, maxSlide]);
+
+  const prevSlide = () => setSlide((s) => (s <= 0 ? maxSlide : s - 1));
+  const nextSlide = () => setSlide((s) => (s >= maxSlide ? 0 : s + 1));
+
+  /* ---------- about copy: lead sentence + remainder ---------- */
+  const aboutText =
+    content?.aboutInc?.content || content?.aboutMoot || content?.aboutNlu?.content || '';
+  const aboutFull = (aboutText || FALLBACK_ABOUT).trim();
 
   const ringLight =
     'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4D0E12]';
   const ringDark =
     'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A5BCD6]';
+  const roundBtn = `flex h-11 w-11 items-center justify-center rounded-full border border-[#231815]/40 text-[#231815] transition hover:bg-[#231815] hover:text-[#F5EFC6] ${ringLight}`;
 
   const timerUnits: [string, string][] = [
     [countdown.days, 'days'],
@@ -220,7 +346,7 @@ export default function HomePage() {
             Pragati
           </h1>
 
-          <a
+          <Link
             href="/register"
             className={`mt-10 inline-flex items-center gap-3 rounded-full bg-[#F5EFC6] px-8 py-3.5 text-sm font-bold text-[#231815] transition hover:bg-[#A5BCD6] ${ringDark}`}
           >
@@ -237,7 +363,7 @@ export default function HomePage() {
             >
               <path d="M4 10h12m0 0l-4-4m4 4l-4 4" />
             </svg>
-          </a>
+          </Link>
         </div>
 
         {/* Countdown */}
@@ -278,51 +404,133 @@ export default function HomePage() {
       </section>
 
       {/* ---------- 2. ABOUT ---------- */}
-      <section className="mx-auto w-full max-w-3xl px-6 py-24">
-        <h2 className="font-serif text-4xl font-bold leading-tight tracking-tight text-[#4D0E12] sm:text-5xl">
-          Welcome to Vidhi Pragati 2027
-        </h2>
-        <p className="mt-8 whitespace-pre-line text-justify font-serif text-lg leading-[1.85] text-[#231815]/90 hyphens-auto sm:text-xl">
-          {aboutText ||
-            'The Vidhi Pragati National IP Moot Court Competition (IPMC) is organized by National Law University Delhi in collaboration with CIPAM, DPIIT, and CIIPC. Designed as a landmark academic forum, Vidhi Pragati brings together law students from top universities across India to engage in thought-provoking advocacy, complex Intellectual Property disputes, and emerging jurisprudence.'}
-        </p>
+      <section className="mx-auto w-full max-w-6xl px-6 py-24">
+        <div className="grid items-stretch gap-12 lg:grid-cols-12 lg:gap-16">
+          <div className="lg:col-span-7">
+            <h2 className="font-serif text-4xl font-bold leading-tight tracking-tight text-[#4D0E12] sm:text-5xl">
+              Welcome to Vidhi Pragati 2027
+            </h2>
+            <p className="mt-8 whitespace-pre-line text-justify font-serif text-lg leading-[1.85] text-[#231815]/90 hyphens-auto sm:text-xl">
+              {aboutFull}
+            </p>
+          </div>
+
+          <div className="relative min-h-80 overflow-hidden rounded-2xl shadow-[0_24px_60px_-28px_rgba(35,24,21,0.7)] ring-1 ring-[#231815]/15 lg:col-span-5">
+            <AbstractArt className="absolute inset-0 h-full w-full" />
+          </div>
+        </div>
       </section>
 
-      {/* ---------- 3. ORGANIZERS ---------- */}
-      <section className="w-full bg-[#A5BCD6] px-6 py-24">
+      {/* ---------- 3. ORGANIZERS (3-up carousel) ---------- */}
+      <section
+        aria-label="Organizers"
+        className="w-full bg-[#A5BCD6] px-6 py-24"
+      >
         <div className="mx-auto max-w-6xl space-y-12">
           <h2 className="font-serif text-4xl font-bold tracking-tight text-[#231815] sm:text-5xl">
             Meet the organizers
           </h2>
 
-          <ul className="flex flex-wrap justify-center gap-5">
-            {organizers.map((org) => (
-              <li key={org.name} className="w-full sm:w-[calc(50%-0.625rem)] lg:w-[calc(20%-1rem)]">
-                <a
-                  href={org.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`group flex h-full min-h-60 flex-col justify-between rounded-2xl bg-[#F5EFC6] p-7 transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-18px_rgba(35,24,21,0.55)] ${ringLight}`}
-                >
-                  <div className="flex h-24 w-full items-center justify-center">
-                    <Image
-                      src={org.logo}
-                      alt={org.name}
-                      width={180}
-                      height={90}
-                      className="max-h-20 w-auto max-w-full object-contain"
-                    />
-                  </div>
+          <div
+            onMouseEnter={() => setHoverPaused(true)}
+            onMouseLeave={() => setHoverPaused(false)}
+            onFocus={() => setHoverPaused(true)}
+            onBlur={() => setHoverPaused(false)}
+          >
+            <div className="-mx-2.5 overflow-hidden py-1">
+              <ul
+                className="flex transition-transform duration-700 ease-in-out [--w:100%] sm:[--w:50%] lg:[--w:33.3333%] motion-reduce:transition-none"
+                style={{ transform: `translateX(calc(-1 * ${slide} * var(--w)))` }}
+              >
+                {organizers.map((org, idx) => {
+                  const visible = idx >= slide && idx < slide + perView;
+                  return (
+                    <li
+                      key={org.name}
+                      aria-hidden={!visible}
+                      className="basis-full shrink-0 px-2.5 sm:basis-1/2 lg:basis-1/3"
+                    >
+                      <a
+                        href={org.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        tabIndex={visible ? 0 : -1}
+                        className={`group flex h-full flex-col rounded-2xl bg-[#F5EFC6] p-8 ring-2 ring-transparent transition hover:ring-[#4D0E12] ${ringLight}`}
+                      >
+                        {/* fixed-height logo well: every logo is centred on the same line */}
+                        <div className="relative h-28 w-full">
+                          <Image
+                            src={org.logo}
+                            alt=""
+                            fill
+                            sizes="(min-width: 1024px) 22vw, (min-width: 640px) 40vw, 90vw"
+                            className="object-contain"
+                          />
+                        </div>
 
-                  <div className="mt-4 space-y-1 border-t border-[#231815]/15 pt-4 text-center">
-                    <h3 className="text-base font-bold text-[#231815] transition-colors group-hover:text-[#4D0E12]">
-                      {org.name}
-                    </h3>
-                  </div>
-                </a>
-              </li>
-            ))}
-          </ul>
+                        {/* fixed-height name well: text always starts at the same height */}
+                        <div className="mt-6 flex h-22 items-start justify-center border-t border-[#231815]/15 pt-4">
+                          <h3 className="line-clamp-3 text-center text-base font-bold leading-snug text-[#231815] transition-colors group-hover:text-[#4D0E12]">
+                            {org.name}
+                          </h3>
+                        </div>
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            {/* controls */}
+            <div className="mt-8 flex items-center justify-center gap-4">
+              <button type="button" onClick={prevSlide} aria-label="Previous organizers" className={roundBtn}>
+                <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 10H4m0 0l4-4m-4 4l4 4" />
+                </svg>
+              </button>
+
+              <div className="flex items-center gap-2">
+                {Array.from({ length: maxSlide + 1 }).map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setSlide(i)}
+                    aria-label={`Go to organizers set ${i + 1}`}
+                    aria-current={i === slide ? 'true' : undefined}
+                    className={`h-2.5 rounded-full transition-all ${ringLight} ${
+                      i === slide ? 'w-8 bg-[#4D0E12]' : 'w-2.5 bg-[#231815]/35 hover:bg-[#231815]/60'
+                    }`}
+                  />
+                ))}
+              </div>
+
+              <button type="button" onClick={nextSlide} aria-label="Next organizers" className={roundBtn}>
+                <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 10h12m0 0l-4-4m4 4l-4 4" />
+                </svg>
+              </button>
+
+              {!reduceMotion && maxSlide > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setUserPaused((p) => !p)}
+                  aria-pressed={userPaused}
+                  aria-label={userPaused ? 'Resume automatic scrolling' : 'Pause automatic scrolling'}
+                  className={roundBtn}
+                >
+                  {userPaused ? (
+                    <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor">
+                      <path d="M6 4l10 6-10 6z" />
+                    </svg>
+                  ) : (
+                    <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor">
+                      <path d="M5 4h4v12H5zM11 4h4v12h-4z" />
+                    </svg>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -339,13 +547,7 @@ export default function HomePage() {
 
             <ol className="relative border-l border-[#A5BCD6]/30">
               {processedTimeline.map((item: any, idx: number) => {
-                const formattedDate = item.startDate
-                  ? new Date(item.startDate).toLocaleDateString('en-US', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })
-                  : 'TBA';
+                const formattedDate = formatRange(item.startDate, item.endDate);
 
                 return (
                   <li key={idx} className="relative pb-6 pl-8 last:pb-0 sm:pl-12">
@@ -362,13 +564,14 @@ export default function HomePage() {
                     />
 
                     <div
-                      className={`grid gap-1 rounded-2xl px-5 py-5 sm:grid-cols-[150px_1fr] sm:gap-6 sm:px-6 ${
+                      className={`grid gap-1 rounded-2xl px-5 py-5 sm:grid-cols-[210px_1fr] sm:gap-6 sm:px-6 ${
                         item.isActive
                           ? 'border border-[#A5BCD6]/50 bg-[#4D0E12]'
                           : 'border border-transparent'
                       }`}
                     >
                       <time
+                        dateTime={item.startDate || undefined}
                         className={`text-sm font-semibold ${
                           item.isPassed && !item.isActive
                             ? 'text-[#F5EFC6]/50'

@@ -13,6 +13,64 @@ import { GET_VIDHI_CONTENT } from '@/lib/queries';
   Potting Soil #4A2E27 · Java Brown #231815
 */
 
+type ParsedVideo = { embedUrl: string; watchUrl: string };
+
+// Understands watch, youtu.be, shorts, live, embed and playlist links, a bare video id,
+// or a whole pasted <iframe ...> snippet. Returns null for anything that cannot be embedded.
+const parseYouTube = (raw?: string | null): ParsedVideo | null => {
+  if (!raw) return null;
+  let value = String(raw).trim();
+  if (!value) return null;
+
+  const iframeSrc = value.match(/src=["']([^"']+)["']/i);
+  if (iframeSrc) value = iframeSrc[1].trim();
+
+  const fromId = (id: string): ParsedVideo => ({
+    embedUrl: `https://www.youtube-nocookie.com/embed/${id}?rel=0`,
+    watchUrl: `https://www.youtube.com/watch?v=${id}`,
+  });
+
+  if (/^[\w-]{11}$/.test(value)) return fromId(value);
+
+  if (value.startsWith('//')) value = `https:${value}`;
+  if (!/^https?:\/\//i.test(value)) value = `https://${value}`;
+
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^(www|m|music)\./, '');
+    let id: string | null = null;
+
+    if (host === 'youtu.be') {
+      id = url.pathname.split('/')[1] || null;
+    } else if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+      if (url.pathname === '/watch') {
+        id = url.searchParams.get('v');
+      } else {
+        const m = url.pathname.match(/^\/(?:embed|shorts|live|v)\/([^/?]+)/);
+        id = m ? m[1] : null;
+      }
+
+      const list = url.searchParams.get('list');
+      if (!id && list) {
+        return {
+          embedUrl: `https://www.youtube-nocookie.com/embed/videoseries?list=${encodeURIComponent(list)}`,
+          watchUrl: `https://www.youtube.com/playlist?list=${encodeURIComponent(list)}`,
+        };
+      }
+    }
+
+    if (id && /^[\w-]{11}$/.test(id)) return fromId(id);
+  } catch {
+    /* fall through */
+  }
+  return null;
+};
+
+const asHttpUrl = (raw?: string | null) => {
+  const v = String(raw ?? '').trim();
+  return /^https?:\/\//i.test(v) ? v : null;
+};
+
 export default function SingleEditionPage() {
   const params = useParams();
   const slug = params?.slug as string;
@@ -40,7 +98,25 @@ export default function SingleEditionPage() {
         );
 
         if (found) {
-          setEdition(found);
+          let merged = found;
+
+          // The shared query may not select the video fields at all: ask for them directly.
+          if (found.finalVideoUrl === undefined && found.valedictoryVideoUrl === undefined) {
+            try {
+              const v: any = await hygraphClient.request(
+                `query EditionVideos { pastEditions { id finalVideoUrl valedictoryVideoUrl } }`
+              );
+              const match = v?.pastEditions?.find((x: any) => x.id === found.id);
+              if (match) merged = { ...found, ...match };
+            } catch (err) {
+              console.warn(
+                'Could not read finalVideoUrl / valedictoryVideoUrl from Hygraph. Check the field API IDs on the past edition model.',
+                err
+              );
+            }
+          }
+
+          setEdition(merged);
         } else {
           const isFirst = slug.includes('1st');
           setEdition({
@@ -76,20 +152,6 @@ export default function SingleEditionPage() {
     }
     fetchData();
   }, [slug]);
-
-  const getYouTubeEmbedUrl = (url: string) => {
-    if (!url) return null;
-    if (url.includes('youtube-nocookie.com/embed/')) return url;
-
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-
-    if (match && match[2].length === 11) {
-      return `https://www.youtube-nocookie.com/embed/${match[2]}?rel=0`;
-    }
-
-    return url;
-  };
 
   const ringLight =
     'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4D0E12]';
@@ -143,10 +205,15 @@ export default function SingleEditionPage() {
   });
 
   const ocPhotos = edition.organisingCommitteePhotos || [];
-  const finalEmbed = getYouTubeEmbedUrl(edition.finalVideoUrl);
-  const valedictoryEmbed = getYouTubeEmbedUrl(edition.valedictoryVideoUrl);
-
   const heroPhoto = ocPhotos[0]?.url;
+
+  // Only recordings that actually have a link; each is parsed once
+  const videos = [
+    { key: 'final', label: 'Final round', raw: edition.finalVideoUrl },
+    { key: 'valedictory', label: 'Valedictory session', raw: edition.valedictoryVideoUrl },
+  ]
+    .filter((v) => typeof v.raw === 'string' && v.raw.trim() !== '')
+    .map((v) => ({ ...v, parsed: parseYouTube(v.raw), href: asHttpUrl(v.raw) }));
 
   return (
     <div className="min-h-screen bg-[#F5EFC6] font-sans text-[#231815] antialiased selection:bg-[#4D0E12] selection:text-[#F5EFC6]">
@@ -201,44 +268,61 @@ export default function SingleEditionPage() {
           </section>
         )}
 
-        {(finalEmbed || valedictoryEmbed) && (
+        {videos.length > 0 && (
           <section aria-labelledby="rec-h" className="space-y-6">
             <h2 id="rec-h" className="font-serif text-2xl font-bold text-[#4D0E12]">
               Recordings
             </h2>
 
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-              {finalEmbed && (
-                <figure className="space-y-3">
-                  <div className="aspect-video w-full overflow-hidden rounded-2xl bg-[#231815] shadow-[0_22px_50px_-22px_rgba(35,24,21,0.6)] ring-1 ring-[#231815]/20">
-                    <iframe
-                      src={finalEmbed}
-                      title={`${edition.title} - Final Round`}
-                      className="h-full w-full"
-                      loading="lazy"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                  <figcaption className="text-sm font-semibold">Final round</figcaption>
-                </figure>
-              )}
+            <div
+              className={`grid grid-cols-1 gap-8 ${videos.length > 1 ? 'md:grid-cols-2' : 'max-w-3xl'}`}
+            >
+              {videos.map((v) => (
+                <figure key={v.key} className="space-y-3">
+                  {v.parsed ? (
+                    <div className="aspect-video w-full overflow-hidden rounded-2xl bg-[#231815] shadow-[0_22px_50px_-22px_rgba(35,24,21,0.6)] ring-1 ring-[#231815]/20">
+                      <iframe
+                        src={v.parsed.embedUrl}
+                        title={`${edition.title} - ${v.label}`}
+                        className="h-full w-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        allowFullScreen
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex aspect-video w-full flex-col items-center justify-center gap-4 rounded-2xl bg-[#231815] p-6 text-center text-[#F5EFC6] ring-1 ring-[#231815]/20">
+                      <p className="max-w-xs text-base">
+                        This recording can&apos;t be shown on the page.
+                      </p>
+                      {v.href && (
+                        <a
+                          href={v.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`rounded-full bg-[#F5EFC6] px-5 py-2 text-sm font-bold text-[#231815] transition hover:bg-[#A5BCD6] ${ringDark}`}
+                        >
+                          Open the recording
+                        </a>
+                      )}
+                    </div>
+                  )}
 
-              {valedictoryEmbed && (
-                <figure className="space-y-3">
-                  <div className="aspect-video w-full overflow-hidden rounded-2xl bg-[#231815] shadow-[0_22px_50px_-22px_rgba(35,24,21,0.6)] ring-1 ring-[#231815]/20">
-                    <iframe
-                      src={valedictoryEmbed}
-                      title={`${edition.title} - Valedictory Session`}
-                      className="h-full w-full"
-                      loading="lazy"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                  <figcaption className="text-sm font-semibold">Valedictory session</figcaption>
+                  <figcaption className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                    <span className="font-semibold">{v.label}</span>
+                    {v.parsed && (
+                      <a
+                        href={v.parsed.watchUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`font-semibold text-[#4D0E12] underline underline-offset-4 ${ringLight}`}
+                      >
+                        Watch on YouTube
+                      </a>
+                    )}
+                  </figcaption>
                 </figure>
-              )}
+              ))}
             </div>
           </section>
         )}

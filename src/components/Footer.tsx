@@ -11,6 +11,7 @@ const links = [
   { label: 'About', href: '/about' },
   { label: 'Past editions', href: '/past-editions' },
   { label: 'Register', href: '/register' },
+  { label: 'Clarifications', href: '/clarifications' },
   { label: 'Contact', href: '/contact' },
 ];
 
