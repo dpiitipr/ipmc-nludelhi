@@ -1,6 +1,5 @@
 export const INVITED_INSTITUTIONS = [
   "National Law School of India University",
-  "National Law University, Delhi",
   "NALSAR University of Law, Hyderabad",
   "The West Bengal National University of Juridical Sciences",
   "Gujarat National Law University, Gandhinagar",
