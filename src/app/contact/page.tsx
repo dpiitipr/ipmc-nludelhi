@@ -351,7 +351,7 @@ export default function ContactPage() {
               />
             </div>
             <h2 id="committee-h" className="font-serif text-2xl font-bold leading-tight">
-              Organising committee
+              Organising Committee
             </h2>
           </div>
 
