@@ -96,7 +96,7 @@ export default function AboutPage() {
             <h1 className="mt-6 font-serif text-5xl font-bold leading-[1.02] tracking-tight sm:text-7xl">
               About the
               <br />
-              competition
+              Competition
             </h1>
           </div>
 
@@ -169,7 +169,7 @@ export default function AboutPage() {
       <section className="w-full bg-[#231815] px-6 py-24 text-[#F5EFC6]">
         <div className="mx-auto max-w-5xl space-y-14">
           <h2 className="font-serif text-4xl font-bold tracking-tight sm:text-5xl">
-            About the organizers
+            About the Organizers
           </h2>
 
           <ul className="divide-y divide-[#A5BCD6]/25 border-y border-[#A5BCD6]/25">
