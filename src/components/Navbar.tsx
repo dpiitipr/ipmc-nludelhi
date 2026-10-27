@@ -16,7 +16,6 @@ const links = [
   { label: 'About', href: '/about' },
   { label: 'Schedule', href: '/#schedule' },
   { label: 'Materials', href: '/#materials' },
-  { label: 'Clarifications', href: '/clarifications' },
   { label: 'Past Editions', href: '/past-editions' },
   { label: 'Contact', href: '/contact' },
 ];
