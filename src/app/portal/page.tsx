@@ -4,16 +4,27 @@ import { hg } from '@/lib/hygraph-server';
 import { readSession } from '@/lib/session';
 import MemorialUpload, { type SlotItem } from '@/components/MemorialUpload';
 import {
-  SLOTS, type Slot, HARD_CLOSE_HOURS, getWindow, redis, recKey, countedMs, receivedMs, lateHoursAt,
+  SLOTS,
+  type Slot,
+  HARD_CLOSE_HOURS,
+  getWindow,
+  redis,
+  recKey,
+  countedMs,
+  receivedMs,
+  lateHoursAt,
   type Rec,
 } from '@/lib/memorial';
 
 export const dynamic = 'force-dynamic';
 
 /*
-  Palette (swatches only):
-  Transparent Yellow #F5EFC6 · Sceptre Red #4D0E12 · Cerulean Blue #A5BCD6
-  Potting Soil #4A2E27 · Java Brown #231815
+  Palette:
+  Transparent Yellow #F5EFC6
+  Sceptre Red #4D0E12
+  Cerulean Blue #A5BCD6
+  Potting Soil #4A2E27
+  Java Brown #231815
 */
 
 const ASSET = 'url fileName';
@@ -22,9 +33,23 @@ const TITLED = `title file { ${ASSET} }`;
 const QUERY = `
   query Portal($id: ID!) {
     team(where: { id: $id }) {
-      universityName teamCode note arrivalDetails departureDetails accommodation
-      buddy { name email phone }
-      participants { name role }
+      universityName
+      teamCode
+      note
+      arrivalDetails
+      departureDetails
+      accommodation
+
+      buddy {
+        name
+        email
+        phone
+      }
+
+      participants {
+        name
+        role
+      }
 
       invitationLetters { ${TITLED} }
       certificates { ${TITLED} }
@@ -33,7 +58,12 @@ const QUERY = `
       memorialPenaltyMemos { ${TITLED} }
 
       rounds {
-        roundName side opponentCode room startsAt remarks
+        roundName
+        side
+        opponentCode
+        room
+        startsAt
+        remarks
         scoresheets { ${TITLED} }
       }
     }
@@ -47,24 +77,63 @@ const QUERY = `
       }
       orderBy: createdAt_DESC
     ) {
-      id title body createdAt attachment { ${ASSET} }
+      id
+      title
+      body
+      createdAt
+      attachment { ${TITLED} }
     }
 
     commonResources(orderBy: sort_ASC) {
-      id title body file { ${ASSET} }
+      id
+      title
+      body
+      file { ${ASSET} }
     }
   }
 `;
 
-type FileItem = { url: string; name: string };
+type FileItem = {
+  url: string;
+  name: string;
+};
 
-const toFiles = (list: any): FileItem[] =>
+type AssetData = {
+  url?: string | null;
+  fileName?: string | null;
+};
+
+type TitledFileData = {
+  title?: string | null;
+  file?: AssetData | null;
+};
+
+type FileInput = AssetData | TitledFileData | null | undefined;
+
+const toFiles = (
+  list: FileInput | FileInput[]
+): FileItem[] =>
   (Array.isArray(list) ? list : list ? [list] : [])
-    .map((x: any) => {
-      const f = x?.url ? x : x?.file?.url ? x.file : null;
-      return f ? { url: f.url, name: x.title || f.fileName || 'Download' } : null;
+    .map((x) => {
+      if (!x) return null;
+
+      const titled = x as TitledFileData;
+      const direct = x as AssetData;
+
+      const f = direct.url
+        ? direct
+        : titled.file?.url
+          ? titled.file
+          : null;
+
+      if (!f?.url) return null;
+
+      return {
+        url: f.url,
+        name: titled.title || f.fileName || 'Download',
+      };
     })
-    .filter(Boolean) as FileItem[];
+    .filter((x): x is FileItem => x !== null);
 
 const IST = 'Asia/Kolkata';
 
@@ -97,7 +166,11 @@ const ext = (n?: string) =>
 
 function Files({ files }: { files: FileItem[] }) {
   if (files.length === 0) {
-    return <span className="text-[#231815]/45">None yet</span>;
+    return (
+      <span className="text-[#231815]/45">
+        None yet
+      </span>
+    );
   }
 
   return (
@@ -107,6 +180,7 @@ function Files({ files }: { files: FileItem[] }) {
           <span className="mt-0.5 shrink-0 rounded-full bg-[#4D0E12] px-1.5 py-px text-[10px] font-bold text-[#F5EFC6]">
             {ext(f.name)}
           </span>
+
           <a
             href={f.url}
             target="_blank"
@@ -131,17 +205,28 @@ function Panel({
   className?: string;
 }) {
   return (
-    <section className={`rounded-2xl border border-[#231815]/15 bg-[#A5BCD6]/20 p-5 sm:p-6 ${className}`}>
-      <h2 className="font-serif text-xl font-bold text-[#4D0E12]">{title}</h2>
-      <div className="mt-3 text-[15px] leading-relaxed">{children}</div>
+    <section
+      className={`rounded-2xl border border-[#231815]/15 bg-[#A5BCD6]/20 p-5 sm:p-6 ${className}`}
+    >
+      <h2 className="font-serif text-xl font-bold text-[#4D0E12]">
+        {title}
+      </h2>
+
+      <div className="mt-3 text-[15px] leading-relaxed">
+        {children}
+      </div>
     </section>
   );
 }
 
 const Text = ({ v }: { v?: string | null }) =>
-  v?.trim()
-    ? <p className="whitespace-pre-line">{v}</p>
-    : <span className="text-[#231815]/45">To be announced</span>;
+  v?.trim() ? (
+    <p className="whitespace-pre-line">{v}</p>
+  ) : (
+    <span className="text-[#231815]/45">
+      To be announced
+    </span>
+  );
 
 export default async function PortalPage() {
   const session = await readSession();
@@ -151,7 +236,9 @@ export default async function PortalPage() {
   let data: any;
 
   try {
-    data = await hg.request(QUERY, { id: session.id });
+    data = await hg.request(QUERY, {
+      id: session.id,
+    });
   } catch (err) {
     console.error('Portal query failed:', err);
 
@@ -183,11 +270,15 @@ export default async function PortalPage() {
     : 0;
 
   const status: 'none' | 'before' | 'open' | 'late' | 'closed' =
-    !w ? 'none'
-      : now < w.opensAt ? 'before'
-      : now <= w.deadline ? 'open'
-      : now <= hard ? 'late'
-      : 'closed';
+    !w
+      ? 'none'
+      : now < w.opensAt
+        ? 'before'
+        : now <= w.deadline
+          ? 'open'
+          : now <= hard
+            ? 'late'
+            : 'closed';
 
   const slots = Object.keys(SLOTS) as Slot[];
 
@@ -208,20 +299,23 @@ export default async function PortalPage() {
       slot,
       label: SLOTS[slot].label,
       expected: `${team.teamCode}_${SLOTS[slot].letter}`,
-      done: r?.status === 'done' && w
-        ? {
-            name: r.name || '',
-            recorded: fmt(countedMs(r, w)),
-            received: fmt(receivedMs(r)),
-            lateHours: lateHoursAt(countedMs(r, w), w),
-            nameOk: !!r.nameOk,
-          }
-        : null,
+      done:
+        r?.status === 'done' && w
+          ? {
+              name: r.name || '',
+              recorded: fmt(countedMs(r, w)),
+              received: fmt(receivedMs(r)),
+              lateHours: lateHoursAt(countedMs(r, w), w),
+              nameOk: !!r.nameOk,
+            }
+          : null,
     };
   });
 
   return (
     <div className="min-h-screen bg-[#F5EFC6] font-sans text-[#231815] antialiased selection:bg-[#4D0E12] selection:text-[#F5EFC6]">
+
+      {/* HEADER */}
 
       <header className="relative isolate overflow-hidden bg-[#231815] text-[#F5EFC6]">
         <div className="absolute inset-0 -z-10 bg-linear-to-br from-[#231815] via-[#231815] to-[#4D0E12]" />
@@ -247,16 +341,22 @@ export default async function PortalPage() {
 
       <main className="mx-auto max-w-7xl space-y-10 px-6 pb-28 pt-12">
 
+        {/* WELCOME */}
+
         <p className="max-w-3xl font-serif text-lg leading-relaxed text-[#231815]/90">
-          Welcome to your team portal for Vidhi Pragati. For any question, write to{' '}
+          Welcome to your team portal for Vidhi Pragati. For any question,
+          write to{' '}
           <a
             href="mailto:dpiit.ipr@nludelhi.ac.in"
             className="font-semibold text-[#4D0E12] underline underline-offset-4"
           >
             dpiit.ipr@nludelhi.ac.in
           </a>.
-          Remember to use only your Team Code to identify yourselves (rule 12).
+          {' '}Remember to use only your Team Code to identify yourselves
+          (rule 12).
         </p>
+
+        {/* ANNOUNCEMENTS */}
 
         {announcements.length > 0 && (
           <Panel title="Announcements" className="bg-[#F5EFC6]">
@@ -275,10 +375,12 @@ export default async function PortalPage() {
                   </p>
 
                   {a.body && (
-                    <p className="mt-1 whitespace-pre-line">{a.body}</p>
+                    <p className="mt-1 whitespace-pre-line">
+                      {a.body}
+                    </p>
                   )}
 
-                  {a.attachment?.url && (
+                  {toFiles(a.attachment).length > 0 && (
                     <div className="mt-2">
                       <Files files={toFiles(a.attachment)} />
                     </div>
@@ -289,11 +391,15 @@ export default async function PortalPage() {
           </Panel>
         )}
 
+        {/* TEAM NOTE */}
+
         {team.note?.trim() && (
           <div className="whitespace-pre-line rounded-2xl border border-[#231815]/20 bg-[#F5EFC6] px-5 py-4 text-sm font-semibold shadow-[0_12px_30px_-20px_rgba(35,24,21,0.6)]">
             {team.note}
           </div>
         )}
+
+        {/* MEMORIAL UPLOAD */}
 
         <MemorialUpload
           status={status}
@@ -315,7 +421,10 @@ export default async function PortalPage() {
         {/* ORAL ROUNDS */}
 
         <section aria-labelledby="rounds-h" className="space-y-4">
-          <h2 id="rounds-h" className="font-serif text-2xl font-bold text-[#4D0E12]">
+          <h2
+            id="rounds-h"
+            className="font-serif text-2xl font-bold text-[#4D0E12]"
+          >
             Oral rounds
           </h2>
 
@@ -337,7 +446,11 @@ export default async function PortalPage() {
                       'Scoresheets',
                       'Remarks',
                     ].map((h) => (
-                      <th key={h} scope="col" className="px-4 py-3 font-semibold">
+                      <th
+                        key={h}
+                        scope="col"
+                        className="px-4 py-3 font-semibold"
+                      >
                         {h}
                       </th>
                     ))}
@@ -350,21 +463,37 @@ export default async function PortalPage() {
                       key={i}
                       className="border-b border-[#231815]/10 align-top last:border-b-0"
                     >
-                      <td className="px-4 py-4 font-semibold">{r.roundName || '–'}</td>
-                      <td className="px-4 py-4">{r.side || 'TBD'}</td>
-                      <td className="px-4 py-4">{r.room || 'TBD'}</td>
+                      <td className="px-4 py-4 font-semibold">
+                        {r.roundName || '–'}
+                      </td>
+
+                      <td className="px-4 py-4">
+                        {r.side || 'TBD'}
+                      </td>
+
+                      <td className="px-4 py-4">
+                        {r.room || 'TBD'}
+                      </td>
+
                       <td className="whitespace-nowrap px-4 py-4">
                         {r.startsAt ? fmtMin(r.startsAt) : 'TBD'}
                       </td>
+
                       <td className="px-4 py-4">
-                        {r.opponentCode ? `#${r.opponentCode}` : 'TBD'}
+                        {r.opponentCode
+                          ? `#${r.opponentCode}`
+                          : 'TBD'}
                       </td>
+
                       <td className="px-4 py-4">
                         <Files files={toFiles(r.scoresheets)} />
                       </td>
+
                       <td className="px-4 py-4">
                         {r.remarks || (
-                          <span className="text-[#231815]/45">–</span>
+                          <span className="text-[#231815]/45">
+                            –
+                          </span>
                         )}
                       </td>
                     </tr>
@@ -375,7 +504,7 @@ export default async function PortalPage() {
           )}
         </section>
 
-        {/* TEAM */}
+        {/* TEAM DETAILS */}
 
         <div className="grid gap-6 lg:grid-cols-3">
           <Panel title="Your team">
@@ -392,12 +521,17 @@ export default async function PortalPage() {
             </h3>
 
             {participants.length === 0 ? (
-              <p className="mt-1 text-[#231815]/45">Not listed yet</p>
+              <p className="mt-1 text-[#231815]/45">
+                Not listed yet
+              </p>
             ) : (
               <ul className="mt-2 space-y-2">
                 {participants.map((p, i) => (
                   <li key={i}>
-                    <span className="font-semibold">{p.name}</span>
+                    <span className="font-semibold">
+                      {p.name}
+                    </span>
+
                     {p.role && (
                       <span className="block text-sm text-[#231815]/70">
                         {p.role}
@@ -409,10 +543,14 @@ export default async function PortalPage() {
             )}
           </Panel>
 
+          {/* TEAM BUDDY */}
+
           <Panel title="Team buddy">
             {team.buddy?.name ? (
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#231815]/15 bg-[#F5EFC6] px-3 py-2">
-                <span className="font-semibold">{team.buddy.name}</span>
+                <span className="font-semibold">
+                  {team.buddy.name}
+                </span>
 
                 <span className="flex gap-3 text-sm font-semibold text-[#4D0E12]">
                   {team.buddy.email && (
@@ -441,6 +579,8 @@ export default async function PortalPage() {
             )}
           </Panel>
 
+          {/* CERTIFICATES */}
+
           <Panel title="Certificates and letters">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-[#231815]/60">
               Invitation letter
@@ -460,6 +600,8 @@ export default async function PortalPage() {
           </Panel>
         </div>
 
+        {/* ARRIVAL / DEPARTURE / ACCOMMODATION */}
+
         <div className="grid gap-6 lg:grid-cols-3">
           <Panel title="Arrival">
             <Text v={team.arrivalDetails} />
@@ -474,26 +616,36 @@ export default async function PortalPage() {
           </Panel>
         </div>
 
+        {/* TRAVEL DOCUMENTS */}
+
         {toFiles(team.travelDocuments).length > 0 && (
           <Panel title="Travel documents">
             <Files files={toFiles(team.travelDocuments)} />
           </Panel>
         )}
 
+        {/* COMMON RESOURCES */}
+
         <Panel title="Common resources">
           {resources.length === 0 ? (
-            <span className="text-[#231815]/45">Nothing yet</span>
+            <span className="text-[#231815]/45">
+              Nothing yet
+            </span>
           ) : (
             <ul className="space-y-4">
               {resources.map((r) => (
                 <li key={r.id}>
-                  <p className="font-semibold">{r.title}</p>
+                  <p className="font-semibold">
+                    {r.title}
+                  </p>
 
                   {r.body && (
-                    <p className="mt-1 whitespace-pre-line">{r.body}</p>
+                    <p className="mt-1 whitespace-pre-line">
+                      {r.body}
+                    </p>
                   )}
 
-                  {r.file?.url && (
+                  {toFiles(r.file).length > 0 && (
                     <div className="mt-1">
                       <Files files={toFiles(r.file)} />
                     </div>
