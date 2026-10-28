@@ -12,6 +12,7 @@ export type SlotItem = {
 
 const ACCEPT: Record<string, string> = { P_pdf: '.pdf', D_pdf: '.pdf', P_word: '.doc,.docx', D_word: '.doc,.docx' };
 
+// sends the file straight to Drive and reports progress; resolves with the Drive file id when readable
 const putFile = (url: string, mime: string, file: File, onProgress: (p: number) => void) =>
   new Promise<string | null>((resolve) => {
     const x = new XMLHttpRequest();
@@ -94,10 +95,16 @@ export default function MemorialUpload({
 
   return (
     <div>
-      <p className={`border-l-4 py-1 pl-4 text-[15px] font-semibold ${banner.tone === 'ok' ? 'border-[#4D0E12]' : banner.tone === 'warn' ? 'border-[#4D0E12] text-[#4D0E12]' : 'border-[#231815]/30 text-[#231815]/70'}`}>
+      <p
+        className={`border-l-4 py-1 pl-4 text-justify text-[15px] font-semibold hyphens-auto ${
+          banner.tone === 'warn' ? 'border-[#4D0E12] text-[#4D0E12]'
+          : banner.tone === 'ok' ? 'border-[#4D0E12]'
+          : 'border-[#231815]/30 text-[#231815]/70'
+        }`}
+      >
         {banner.text}
       </p>
-      <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#231815]/75">
+      <p className="mt-4 text-justify text-sm leading-relaxed text-[#231815]/75 hyphens-auto">
         Submit four files: the Plaintiff and Defendant memorials, each in PDF and Word. Name them with your team code
         and side, for example <b>{items[0]?.expected}.pdf</b>. Every submission is final (rule 7.1.4). Remove
         identifying metadata before uploading (rule 12).
