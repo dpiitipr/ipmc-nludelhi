@@ -25,17 +25,34 @@ const QUERY = `
       universityName teamCode note arrivalDetails departureDetails accommodation
       buddy { name email phone }
       participants { name role }
+
       invitationLetters { ${TITLED} }
       certificates { ${TITLED} }
       travelDocuments { ${TITLED} }
       memorialScoresheets { ${TITLED} }
       memorialPenaltyMemos { ${TITLED} }
-      rounds { roundName side opponentCode room startsAt remarks scoresheets { ${TITLED} } }
+
+      rounds {
+        roundName side opponentCode room startsAt remarks
+        scoresheets { ${TITLED} }
+      }
     }
-    announcements(where: { OR: [{ audience: All }, { teams_some: { id: $id } }] }, orderBy: createdAt_DESC) {
-      id title body pinned createdAt attachment { ${ASSET} }
+
+    announcements(
+      where: {
+        OR: [
+          { audience: All }
+          { teams_some: { id: $id } }
+        ]
+      }
+      orderBy: createdAt_DESC
+    ) {
+      id title body createdAt attachment { ${ASSET} }
     }
-    commonResources(orderBy: sort_ASC) { id title body file { ${ASSET} } }
+
+    commonResources(orderBy: sort_ASC) {
+      id title body file { ${ASSET} }
+    }
   }
 `;
 
@@ -153,11 +170,7 @@ export default async function PortalPage() {
 
   const rounds: any[] = team.rounds ?? [];
   const participants: any[] = team.participants ?? [];
-
-  const announcements: any[] = [...(data.announcements ?? [])].sort(
-    (a, b) => Number(b.pinned) - Number(a.pinned)
-  );
-
+  const announcements: any[] = data.announcements ?? [];
   const resources: any[] = data.commonResources ?? [];
 
   /* ---------- Memorial state ---------- */
@@ -213,7 +226,7 @@ export default async function PortalPage() {
       <header className="relative isolate overflow-hidden bg-[#231815] text-[#F5EFC6]">
         <div className="absolute inset-0 -z-10 bg-linear-to-br from-[#231815] via-[#231815] to-[#4D0E12]" />
 
-        <div className="mx-auto max-w-7xl flex-wrap items-end justify-between gap-6 px-6 pb-14 pt-32 sm:flex sm:pt-40">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-end justify-between gap-6 px-6 pb-14 pt-32 sm:pt-40">
           <div>
             <p className="text-sm font-semibold text-[#A5BCD6]">
               Team #{team.teamCode}
@@ -254,12 +267,6 @@ export default async function PortalPage() {
                   className="border-b border-[#231815]/15 pb-4 last:border-b-0 last:pb-0"
                 >
                   <p className="font-semibold">
-                    {a.pinned && (
-                      <span className="mr-2 text-xs font-bold uppercase tracking-wider text-[#4D0E12]">
-                        Pinned
-                      </span>
-                    )}
-
                     {a.title}
 
                     <span className="ml-2 text-xs font-normal text-[#231815]/60">
