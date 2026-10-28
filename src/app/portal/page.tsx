@@ -88,7 +88,7 @@ const QUERY = `
       id
       title
       body
-      file { ${ASSET} }
+      file { ${TITLED} }
     }
   }
 `;
