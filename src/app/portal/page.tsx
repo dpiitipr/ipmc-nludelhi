@@ -86,7 +86,7 @@ const ICONS: Record<string, string> = {
 
 function Icon({ name }: { name: keyof typeof ICONS | string }) {
   return (
-    <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d={ICONS[name] ?? ICONS.folder} />
     </svg>
   );
@@ -288,7 +288,7 @@ export default async function PortalPage() {
             <Block title="Memorial submission" icon="upload" badge={`${submitted}/4`}>
               <MemorialUpload status={status} deadlineLabel={fmtMin(w?.deadline)} hardCloseLabel={fmtMin(hard || null)} items={items} />
               {status === 'none' && windowError && (
-                <p className="mt-3 break-words rounded-md border border-[#4D0E12]/40 bg-[#A5BCD6]/30 px-3 py-2 text-xs font-semibold text-[#4D0E12]">
+                <p className="mt-3 wrap-break-word rounded-md border border-[#4D0E12]/40 bg-[#A5BCD6]/30 px-3 py-2 text-xs font-semibold text-[#4D0E12]">
                   Organisers only. Why the window could not be read: {windowError}
                 </p>
               )}
