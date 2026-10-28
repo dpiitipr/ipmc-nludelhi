@@ -89,7 +89,6 @@ export default function LoginPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#4D0E12]">Vidhi Pragati 2027</p>
           </div>
 
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#4D0E12]">Participant docket</p>
           <h2 className="mt-3 font-serif text-5xl font-bold leading-tight text-[#231815]">Team sign in</h2>
           <p className="mt-4 max-w-sm text-[15px] leading-relaxed text-[#231815]/75">
             Use the team code and password sent to your point of contact. Only your team code identifies you in the
