@@ -11,3 +11,6 @@ export const hygraphClient = new GraphQLClient(HYGRAPH_ENDPOINT, {
     }),
   },
 });
+
+// Alias for compatibility with existing imports
+export const hg = hygraphClient;
