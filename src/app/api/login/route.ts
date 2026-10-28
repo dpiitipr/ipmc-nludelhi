@@ -28,9 +28,14 @@ export async function POST(req: Request) {
       { c: code }
     );
     team = r.team;
-  } catch (err) {
-    console.error('Login lookup failed:', err);
-    return NextResponse.json({ error: 'Could not sign in right now. Please try again.' }, { status: 500 });
+    } catch (err: any) {
+    const detail = err?.response?.errors?.[0]?.message || err?.message || String(err);
+    console.error('Login lookup failed:', detail);
+    const dev = process.env.NODE_ENV !== 'production';
+    return NextResponse.json(
+      { error: dev ? `Could not sign in: ${detail}` : 'Could not sign in right now. Please try again.' },
+      { status: 500 }
+    );
   }
 
   // compare even when the team is unknown, so timing doesn't reveal valid codes
