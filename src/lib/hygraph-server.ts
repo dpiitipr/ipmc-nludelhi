@@ -1,6 +1,10 @@
+import 'server-only';
 import { GraphQLClient } from 'graphql-request';
 
-const endpoint = process.env.NEXT_PUBLIC_HYGRAPH_ENDPOINT;
+const endpoint =
+  process.env.HYGRAPH_ENDPOINT ||
+  process.env.NEXT_PUBLIC_HYGRAPH_ENDPOINT;
+
 const token = process.env.HYGRAPH_PERMANENT_AUTH_TOKEN;
 
 if (!endpoint || !endpoint.startsWith('https://')) {
