@@ -306,8 +306,6 @@ export default function MemorialUpload({
         each in PDF and Word. Name them with your team code and
         side, for example{' '}
         <b>{items[0]?.expected}.pdf</b>.
-        {' '}Every submission is final (rule 7.1.4).
-        Remove identifying metadata before uploading (rule 12).
       </p>
 
       {/* Memorial slots */}

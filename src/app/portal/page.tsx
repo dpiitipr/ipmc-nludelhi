@@ -246,9 +246,8 @@ export default async function PortalPage() {
           Welcome to your personalised team portal for Vidhi Pragati. You will find all the logistical information
           here. If you have any questions, write to{' '}
           <a href="mailto:dpiit.ipr@nludelhi.ac.in" className="font-semibold text-[#4D0E12] underline underline-offset-4">
-            dpiit.ipr@nludelhi.ac.in
+            dpiit.ipr@nludelhi.ac.in.
           </a>
-          . Use only your team code to identify yourselves (rule 12).
         </p>
 
         {/* ---------- at a glance ---------- */}
