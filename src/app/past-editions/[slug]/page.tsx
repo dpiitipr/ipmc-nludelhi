@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
 import { hygraphClient } from '@/lib/hygraph';
 import { GET_VIDHI_CONTENT } from '@/lib/queries';
@@ -230,6 +229,13 @@ export default function SingleEditionPage() {
   const ocPhotos = edition.organisingCommitteePhotos || [];
   const winners = edition.pastEditionWinner || [];
 
+  // Hero rotation: winner photos first, then committee photos, no duplicates
+  const heroPhotos = (() => {
+    const all = [...winners.flatMap((w: any) => w?.photo || []), ...ocPhotos];
+    const seen = new Set<string>();
+    return all.filter((p: any) => p?.url && !seen.has(p.url) && seen.add(p.url));
+  })();
+
   // Only recordings that actually have a link; each is parsed once
   const videos = [
     { key: 'final', label: 'Final round', raw: edition.finalVideoUrl },
@@ -242,15 +248,15 @@ export default function SingleEditionPage() {
     <div className="min-h-screen bg-[#F5EFC6] font-sans text-[#231815] antialiased selection:bg-[#4D0E12] selection:text-[#F5EFC6]">
       {/* ---------- HERO ---------- */}
       <header className="relative isolate overflow-hidden bg-[#231815] text-[#F5EFC6]">
-        {ocPhotos.length > 0 && (
+        {heroPhotos.length > 0 && (
           <div className="absolute inset-0 -z-20 opacity-35">
             <PhotoSlideshow
-              photos={ocPhotos}
+              photos={heroPhotos}
               alt=""
               decorative
               priority
               sizes="100vw"
-              interval={6000}
+              interval={5000}
             />
           </div>
         )}
