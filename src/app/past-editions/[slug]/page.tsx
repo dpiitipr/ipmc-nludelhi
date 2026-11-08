@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { hygraphClient } from '@/lib/hygraph';
 import { GET_VIDHI_CONTENT } from '@/lib/queries';
 import MaterialsList from '@/components/MaterialsList';
+import PhotoSlideshow from '@/components/PhotoSlideshow';
 import { normalizeMaterials, hasAnyFile } from '@/lib/materials';
 
 /*
@@ -131,6 +132,22 @@ export default function SingleEditionPage() {
             }
           }
 
+          // Winners (component list on PastEdition). Add `winners` to GET_VIDHI_CONTENT
+          // later if you want to drop this extra request.
+          if (!merged.pastEditionWinner?.length) {
+            try {
+              const w: any = await hygraphClient.request(
+                `query EditionWinners { pastEditions { id pastEditionWinner { id position team institution photo { id url } } } }`
+              );
+              const match = w?.pastEditions?.find((x: any) => x.id === found.id);
+              if (match?.pastEditionWinner?.length) {
+                merged = { ...merged, pastEditionWinner: match.pastEditionWinner };
+              }
+            } catch (err) {
+              console.warn('Could not read pastEditionWinner from Hygraph.', err);
+            }
+          }
+
           setEdition(merged);
         } else {
           const isFirst = slug.includes('1st');
@@ -150,6 +167,7 @@ export default function SingleEditionPage() {
             finalVideoUrl: '',
             valedictoryVideoUrl: '',
             materials: [],
+            pastEditionWinner: [],
             organisingCommitteePhotos: [
               {
                 id: 'oc1',
@@ -210,7 +228,7 @@ export default function SingleEditionPage() {
   const materialsList = normalizeMaterials(edition.materials, 'material');
 
   const ocPhotos = edition.organisingCommitteePhotos || [];
-  const heroPhoto = ocPhotos[0]?.url;
+  const winners = edition.pastEditionWinner || [];
 
   // Only recordings that actually have a link; each is parsed once
   const videos = [
@@ -224,15 +242,17 @@ export default function SingleEditionPage() {
     <div className="min-h-screen bg-[#F5EFC6] font-sans text-[#231815] antialiased selection:bg-[#4D0E12] selection:text-[#F5EFC6]">
       {/* ---------- HERO ---------- */}
       <header className="relative isolate overflow-hidden bg-[#231815] text-[#F5EFC6]">
-        {heroPhoto && (
-          <Image
-            src={heroPhoto}
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            className="-z-20 object-cover opacity-35"
-          />
+        {ocPhotos.length > 0 && (
+          <div className="absolute inset-0 -z-20 opacity-35">
+            <PhotoSlideshow
+              photos={ocPhotos}
+              alt=""
+              decorative
+              priority
+              sizes="100vw"
+              interval={6000}
+            />
+          </div>
         )}
         <div className="absolute inset-0 -z-10 bg-linear-to-t from-[#231815] via-[#4D0E12]/60 to-[#231815]/50" />
 
@@ -341,29 +361,61 @@ export default function SingleEditionPage() {
           </section>
         )}
 
+        {winners.length > 0 && (
+          <section aria-labelledby="win-h" className="space-y-6">
+            <h2 id="win-h" className="font-serif text-2xl font-bold text-[#4D0E12]">
+              Last Edition Winners
+            </h2>
+
+            <div className="grid gap-6 sm:grid-cols-2">
+              {winners.map((w: any, i: number) => (
+                <article
+                  key={w.id}
+                  className="overflow-hidden rounded-2xl bg-white/40 ring-1 ring-[#231815]/15"
+                >
+                  {w.photo?.length > 0 && (
+                    <div className="relative aspect-4/3 w-full bg-[#A5BCD6]/30">
+                      <PhotoSlideshow
+                        photos={w.photo}
+                        alt={`${w.position || 'Winner'}${w.institution ? `, ${w.institution}` : ''}`}
+                        sizes="(min-width: 640px) 45vw, 100vw"
+                        interval={5000 + i * 700}
+                      />
+                    </div>
+                  )}
+                  <div className="space-y-2 p-5">
+                    {w.position && (
+                      <p className="text-sm font-bold uppercase tracking-wide text-[#4D0E12]">
+                        {w.position}
+                      </p>
+                    )}
+                    {w.team && (
+                      <p className="whitespace-pre-line font-serif text-xl font-bold">{w.team}</p>
+                    )}
+                    {w.institution && (
+                      <p className="text-sm text-[#231815]/75">{w.institution}</p>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
         {ocPhotos.length > 0 && (
           <section aria-labelledby="oc-h" className="space-y-6">
             <h2 id="oc-h" className="font-serif text-2xl font-bold text-[#4D0E12]">
-              Organising committee
+              Competition Photos
             </h2>
 
-            <div className={`grid gap-6 ${ocPhotos.length === 1 ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
-              {ocPhotos.map((photo: any) => (
-                <div
-                  key={photo.id}
-                  className={`relative w-full overflow-hidden rounded-2xl bg-[#A5BCD6]/30 ring-1 ring-[#231815]/15 ${
-                    ocPhotos.length === 1 ? 'aspect-video' : 'aspect-4/3'
-                  }`}
-                >
-                  <Image
-                    src={photo.url}
-                    alt={`Organising committee, ${edition.edition}`}
-                    fill
-                    sizes="(min-width: 640px) 50vw, 100vw"
-                    className="object-cover"
-                  />
-                </div>
-              ))}
+            <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-[#A5BCD6]/30 ring-1 ring-[#231815]/15">
+              <PhotoSlideshow
+                photos={ocPhotos}
+                alt={`Competition photo, ${edition.edition}`}
+                sizes="(min-width: 1024px) 960px, 100vw"
+                showDots
+                pauseOnHover
+              />
             </div>
           </section>
         )}

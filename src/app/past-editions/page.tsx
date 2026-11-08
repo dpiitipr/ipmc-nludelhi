@@ -2,15 +2,29 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { hygraphClient } from '@/lib/hygraph';
 import { GET_VIDHI_CONTENT } from '@/lib/queries';
+import PhotoSlideshow from '@/components/PhotoSlideshow';
 
 /*
   Palette (swatches only):
   Transparent Yellow #F5EFC6 · Sceptre Red #4D0E12 · Cerulean Blue #A5BCD6
   Potting Soil #4A2E27 · Java Brown #231815
 */
+
+const FALLBACK_COVER = '/SAN_1069.JPG';
+
+// Cover photos = every photo of every winner (no duplicates).
+// If an edition has no winner photos yet, show a single static photo so the card is never empty.
+const getCoverPhotos = (ed: any) => {
+  const all = (ed.pastEditionWinner || []).flatMap((w: any) => w?.photo || []);
+  const seen = new Set<string>();
+  const unique = all.filter((p: any) => p?.url && !seen.has(p.url) && seen.add(p.url));
+  if (unique.length) return unique;
+
+  const fallback = ed.coverImage?.url || ed.organisingCommitteePhotos?.[0]?.url || FALLBACK_COVER;
+  return [{ id: 'fallback', url: fallback }];
+};
 
 export default function PastEditionsIndexPage() {
   const [editions, setEditions] = useState<any[]>([]);
@@ -20,11 +34,33 @@ export default function PastEditionsIndexPage() {
     async function fetchData() {
       try {
         const data: any = await hygraphClient.request(GET_VIDHI_CONTENT);
+        let list: any[] = [];
+
         if (data?.pastEditions?.length > 0) {
-          setEditions(data.pastEditions);
+          list = data.pastEditions;
+
+          // Winner photos: ask for them directly in case the shared query doesn't select them.
+          if (list.some((e: any) => !e.pastEditionWinner?.length)) {
+            try {
+              const w: any = await hygraphClient.request(
+                `query EditionWinnerPhotos { pastEditions { id pastEditionWinner { id photo { id url } } } }`
+              );
+              const byId = new Map<string, any[]>(
+                (w?.pastEditions || []).map((x: any) => [x.id, x.pastEditionWinner || []])
+              );
+              list = list.map((e: any) => ({
+                ...e,
+                pastEditionWinner: e.pastEditionWinner?.length
+                  ? e.pastEditionWinner
+                  : byId.get(e.id) || [],
+              }));
+            } catch (err) {
+              console.warn('Could not read pastEditionWinner photos from Hygraph.', err);
+            }
+          }
         } else {
           // Fallback static data if Hygraph returns empty array
-          setEditions([
+          list = [
             {
               id: '2nd-edition',
               edition: '2nd Edition',
@@ -33,6 +69,7 @@ export default function PastEditionsIndexPage() {
               theme: 'Trademark and Copyright Jurisprudence',
               description:
                 'The 2nd edition brought together over 40 premier law schools across India to deliberate on complex trademark infringement in digital marketplaces, intermediary liability, and copyright ownership in AI-generated artistic works.',
+              pastEditionWinner: [],
               organisingCommitteePhotos: [{ id: 'oc1', url: '/SAN_1069.JPG' }],
             },
             {
@@ -43,10 +80,13 @@ export default function PastEditionsIndexPage() {
               theme: 'Emerging Issues in Patent & Trade Secrets',
               description:
                 'Inaugural edition establishing Vidhi Pragati as a premier national platform for intellectual property advocacy and appellate argument in India.',
+              pastEditionWinner: [],
               organisingCommitteePhotos: [{ id: 'oc2', url: '/2A3A0323.JPG' }],
             },
-          ]);
+          ];
         }
+
+        setEditions(list);
       } catch (err) {
         console.error('Hygraph Fetch Error (Past Editions Index):', err);
       } finally {
@@ -104,33 +144,30 @@ export default function PastEditionsIndexPage() {
         <ol className="space-y-20 sm:space-y-28">
           {editions.map((ed: any, index: number) => {
             const slug = getSlug(ed.edition, ed.id);
-            const coverImage =
-              ed.coverImage?.url ||
-              ed.organisingCommitteePhotos?.[0]?.url ||
-              '/SAN_1069.JPG';
             const flip = index % 2 === 1;
 
             return (
               <li key={ed.id}>
                 <article className="group relative grid items-center gap-8 md:grid-cols-2 md:gap-14">
-                  {/* Photo */}
+                  {/* Photo: winner photos only, rotating */}
                   <div
                     className={`relative aspect-4/3 w-full overflow-hidden rounded-2xl bg-[#A5BCD6]/30 shadow-[0_22px_50px_-22px_rgba(35,24,21,0.6)] ring-1 ring-[#231815]/15 ${
                       flip ? 'md:order-2' : ''
                     }`}
                   >
-                    <Image
-                      src={coverImage}
-                      alt={`Organising committee, ${ed.edition || 'edition'}`}
-                      fill
-                      sizes="(min-width: 768px) 45vw, 100vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                    />
+                    <div className="absolute inset-0 transition-transform duration-500 group-hover:scale-[1.03]">
+                      <PhotoSlideshow
+                        photos={getCoverPhotos(ed)}
+                        alt={`Winners of the ${ed.edition || 'edition'}`}
+                        sizes="(min-width: 768px) 45vw, 100vw"
+                        interval={4500 + index * 900}
+                        priority={index === 0}
+                      />
+                    </div>
                   </div>
 
                   {/* Text */}
                   <div className="space-y-5">
-
                     <h2 className="font-serif text-2xl font-bold leading-tight sm:text-3xl">
                       {/* stretched link: the whole article is clickable */}
                       <Link
