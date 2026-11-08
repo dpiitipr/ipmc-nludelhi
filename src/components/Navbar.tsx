@@ -20,9 +20,22 @@ const links = [
   { label: 'Contact', href: '/contact' },
 ];
 
+const LOGIN_HREF = '/login';
+
+const LockIcon = () => (
+  <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="9" width="12" height="8" rx="2" />
+    <path d="M7 9V6.5a3 3 0 016 0V9" />
+  </svg>
+);
+
 export default function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  const inPortal = pathname.startsWith('/portal');
+  const loginHref = inPortal ? '/portal' : LOGIN_HREF;
+  const loginLabel = inPortal ? 'My portal' : 'Team login';
 
   // Only real routes can be "current"; hash links point at sections on the home page.
   const isCurrent = (href: string) => {
@@ -36,7 +49,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-100 border-b border-[#A5BCD6]/25 bg-[#231815]/95 text-[#F5EFC6] backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-3 sm:px-10 md:px-16">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3 sm:px-10 md:px-16">
         {/* Logo and institution */}
         <Link
           href="/"
@@ -82,35 +95,44 @@ export default function Navbar() {
             );
           })}
           <Link
-            href="/register"
-            aria-current={isCurrent('/register') ? 'page' : undefined}
-            className={`rounded-full bg-[#F5EFC6] px-5 py-2 text-sm font-bold text-[#231815] transition hover:bg-[#A5BCD6] ${ring}`}
+            href={loginHref}
+            className={`group inline-flex items-center gap-2 rounded-full bg-[#F5EFC6] px-6 py-2.5 text-sm font-bold text-[#231815] shadow-[0_0_0_4px_rgba(245,239,198,0.14)] transition hover:bg-[#A5BCD6] hover:shadow-[0_0_0_6px_rgba(165,188,214,0.28)] ${ring}`}
           >
-            Register
+            <LockIcon />
+            {loginLabel}
+            <span aria-hidden="true" className="transition group-hover:translate-x-0.5">→</span>
           </Link>
         </nav>
 
-        {/* Mobile menu button */}
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          aria-controls="mobile-nav"
-          aria-label={open ? 'Close menu' : 'Open menu'}
-          className={`flex h-11 w-11 items-center justify-center rounded-full border border-[#A5BCD6]/40 transition hover:border-[#A5BCD6] xl:hidden ${ring}`}
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 20 20"
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
+        {/* Small screens: login stays visible next to the menu button */}
+        <div className="flex items-center gap-3 xl:hidden">
+          <Link
+            href={loginHref}
+            className={`rounded-full bg-[#F5EFC6] px-4 py-2 text-xs font-bold text-[#231815] transition hover:bg-[#A5BCD6] ${ring}`}
           >
-            {open ? <path d="M5 5l10 10M15 5L5 15" /> : <path d="M3 6h14M3 10h14M3 14h14" />}
-          </svg>
-        </button>
+            {loginLabel}
+          </Link>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            aria-controls="mobile-nav"
+            aria-label={open ? 'Close menu' : 'Open menu'}
+            className={`flex h-11 w-11 items-center justify-center rounded-full border border-[#A5BCD6]/40 transition hover:border-[#A5BCD6] ${ring}`}
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            >
+              {open ? <path d="M5 5l10 10M15 5L5 15" /> : <path d="M3 6h14M3 10h14M3 14h14" />}
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Mobile navigation */}
@@ -143,12 +165,12 @@ export default function Navbar() {
             })}
           </ul>
           <Link
-            href="/register"
+            href={loginHref}
             onClick={() => setOpen(false)}
-            aria-current={isCurrent('/register') ? 'page' : undefined}
-            className={`mt-4 flex items-center justify-center rounded-full bg-[#F5EFC6] px-6 py-3 text-base font-bold text-[#231815] transition hover:bg-[#A5BCD6] ${ring}`}
+            className={`mt-4 flex items-center justify-center gap-2 rounded-full bg-[#F5EFC6] px-6 py-3.5 text-base font-bold text-[#231815] transition hover:bg-[#A5BCD6] ${ring}`}
           >
-            Register
+            <LockIcon />
+            {loginLabel} →
           </Link>
         </nav>
       )}

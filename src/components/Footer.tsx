@@ -13,7 +13,6 @@ const SOCIALS: { name: string; href: string; icon: string }[] = [
 
 const EXPLORE: [string, string][] = [
   ['Home', '/'],
-  ['Register', '/register'],
   ['Clarifications', '/clarifications'],
   ['Past editions', '/past-editions'],
   ['Contact', '/contact'],
@@ -118,7 +117,6 @@ export default function Footer() {
                   Team login →
                 </Link>
               </li>
-              <li className="text-sm text-[#F5EFC6]/70">Portal for memorials, schedules and resources.</li>
             </ul>
           </div>
 
