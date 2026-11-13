@@ -175,6 +175,9 @@ export default function AboutPage() {
             {/* ---------- STUDENT COORDINATORS ---------- */}
       <section className="w-full bg-[#F5EFC6] px-6 py-24">
         <div className="mx-auto max-w-6xl space-y-12">
+          <h2 className="font-serif text-4xl font-bold tracking-tight text-[#4D0E12] sm:text-5xl">
+            Student Coordinators
+          </h2>
 
           <ul className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {coordinators.map((c) => (
@@ -190,7 +193,6 @@ export default function AboutPage() {
                     />
                   </div>
                   <figcaption className="mt-4">
-                    <span className="block text-sm font-bold text-[#4D0E12]">{c.role}</span>
                     <span className="mt-1 block font-serif text-xl font-bold leading-snug text-[#231815]">
                       {c.name}
                     </span>
