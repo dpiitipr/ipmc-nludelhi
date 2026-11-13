@@ -78,6 +78,13 @@ export default function AboutPage() {
       detail: 'Research and Programme Coordinator, National Law University Delhi',
       photo: '/Nishtha%20Sharma.JPG',
     },
+    
+  ];
+
+    const coordinators = [
+    { name: 'Apurva Tayal', role: 'Student Coordinator', photo: '/apurva-tayal.jpeg' },
+    { name: 'Chaitrali Naik', role: 'Student Coordinator', photo: '/chaitrali-naik.jpeg' },
+    { name: 'Shivank Yadav', role: 'Student Coordinator', photo: '/shivank-yadav.jpeg' },
   ];
 
   const ringLight =
@@ -157,6 +164,42 @@ export default function AboutPage() {
                         {p.detail}
                       </span>
                     )}
+                  </figcaption>
+                </figure>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+            {/* ---------- STUDENT COORDINATORS ---------- */}
+      <section className="w-full bg-[#F5EFC6] px-6 py-24">
+        <div className="mx-auto max-w-6xl space-y-12">
+          <h2 className="font-serif text-4xl font-bold tracking-tight text-[#4D0E12] sm:text-5xl">
+            Student Coordinators
+          </h2>
+
+          <ul className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {coordinators.map((c) => (
+              <li key={c.name}>
+                <figure>
+                  <div className="relative aspect-4/5 w-full overflow-hidden rounded-2xl bg-[#A5BCD6] ring-1 ring-[#231815]/20">
+                    <Image
+                      src={c.photo}
+                      alt={c.name}
+                      fill
+                      sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                      className="object-cover object-top"
+                    />
+                  </div>
+                  <figcaption className="mt-4">
+                    <span className="block text-sm font-bold text-[#4D0E12]">{c.role}</span>
+                    <span className="mt-1 block font-serif text-xl font-bold leading-snug text-[#231815]">
+                      {c.name}
+                    </span>
+                    <span className="mt-1 block text-sm leading-snug text-[#231815]/75">
+                      National Law University Delhi
+                    </span>
                   </figcaption>
                 </figure>
               </li>
